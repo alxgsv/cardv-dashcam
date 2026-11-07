@@ -5,7 +5,6 @@ import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -284,11 +283,6 @@ private fun HeroLens() {
     ) {
         Box(
             modifier = Modifier
-                .size(236.dp)
-                .border(1.dp, colors.outline.copy(alpha = 0.45f), CircleShape),
-        )
-        Box(
-            modifier = Modifier
                 .size(206.dp)
                 .background(
                     Brush.radialGradient(
@@ -301,12 +295,6 @@ private fun HeroLens() {
             painter = painterResource(R.drawable.hero_dashcam),
             contentDescription = null,
             modifier = Modifier.size(218.dp),
-        )
-        Box(
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .size(8.dp)
-                .background(colors.primary, CircleShape),
         )
     }
 }
