@@ -10,10 +10,7 @@ import com.cardv.shared.download.DownloadRanges
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import java.io.File
-import java.io.FileOutputStream
 import java.io.IOException
 
 /**
@@ -67,13 +64,20 @@ class DownloadWorker(
                         bytes = existing,
                         total = knownTotal ?: expectedBytes,
                     )
-                    knownTotal = transfer(
-                        client = client,
+                    knownTotal = ResumableTransfer(client).download(
                         url = baseUrl.trimEnd('/') + (if (clipPath.startsWith('/')) clipPath else "/$clipPath"),
                         part = part,
                         totalFile = totalFile,
-                        clipPath = clipPath,
-                        displayName = displayName,
+                        isStopped = { isStopped },
+                        onProgress = { bytes, total ->
+                            reportProgress(
+                                phase = PHASE_DOWNLOADING,
+                                clipPath = clipPath,
+                                displayName = displayName,
+                                bytes = bytes,
+                                total = total,
+                            )
+                        },
                     )
                 }
 
@@ -115,109 +119,6 @@ class DownloadWorker(
         }
     }
 
-    /**
-     * Append the remaining bytes. Returns the real total from `Content-Range` when known.
-     */
-    private suspend fun transfer(
-        client: OkHttpClient,
-        url: String,
-        part: File,
-        totalFile: File,
-        clipPath: String,
-        displayName: String,
-    ): Long? {
-        val existing = part.length()
-        val rangeHeader = DownloadRanges.requestHeader(existing)
-        val request = Request.Builder()
-            .url(url)
-            .apply { rangeHeader?.let { header("Range", it) } }
-            .build()
-
-        return client.newCall(request).execute().use { response ->
-            if (response.code == 416) {
-                val total = DownloadRanges.parseContentRange(response.header("Content-Range"))
-                    ?.totalBytes
-                if (total != null && total > 0 && part.length() >= total) {
-                    totalFile.writeText(total.toString())
-                    total
-                } else {
-                    part.delete()
-                    totalFile.delete()
-                    throw IOException("camera rejected the resume offset; restarting the download")
-                }
-            } else {
-                if (!response.isSuccessful) {
-                    throw IOException("camera returned HTTP ${response.code}")
-                }
-                val body = response.body ?: throw IOException("camera returned an empty response")
-                val contentRange = DownloadRanges.parseContentRange(response.header("Content-Range"))
-                val total = contentRange?.totalBytes ?: body.contentLength().takeIf { it > 0 }
-
-                if (response.code == 206 &&
-                    existing > 0 &&
-                    contentRange?.start != null &&
-                    contentRange.start != existing
-                ) {
-                    // The server resumed at a different offset than we asked for. Start clean.
-                    part.delete()
-                    totalFile.delete()
-                    throw IOException("camera resumed at ${contentRange.start}, expected $existing")
-                }
-
-                val append = response.code == 206 && existing > 0
-                total?.let { totalFile.writeText(it.toString()) }
-
-                FileOutputStream(part, append).use { output ->
-                    body.byteStream().use { input ->
-                        val buffer = ByteArray(BUFFER_BYTES)
-                        var downloaded = if (append) existing else 0L
-                        var lastReport = 0L
-                        reportProgress(
-                            PHASE_DOWNLOADING,
-                            clipPath,
-                            displayName,
-                            downloaded,
-                            total,
-                        )
-                        while (true) {
-                            if (isStopped) throw CancellationException("download stopped")
-                            val read = input.read(buffer)
-                            if (read < 0) break
-                            output.write(buffer, 0, read)
-                            downloaded += read
-                            val now = System.currentTimeMillis()
-                            if (now - lastReport >= PROGRESS_INTERVAL_MILLIS ||
-                                (total != null && downloaded >= total)
-                            ) {
-                                reportProgress(
-                                    PHASE_DOWNLOADING,
-                                    clipPath,
-                                    displayName,
-                                    downloaded,
-                                    total,
-                                )
-                                lastReport = now
-                            }
-                        }
-                        reportProgress(
-                            PHASE_DOWNLOADING,
-                            clipPath,
-                            displayName,
-                            downloaded,
-                            total,
-                        )
-                    }
-                }
-
-                val length = part.length()
-                if (total != null && length < total) {
-                    throw IOException("download stopped at $length of $total bytes")
-                }
-                total
-            }
-        }
-    }
-
     private suspend fun reportProgress(
         phase: String,
         clipPath: String,
@@ -255,7 +156,5 @@ class DownloadWorker(
 
         private const val DOWNLOAD_DIRECTORY = "downloads"
         private const val MAX_ATTEMPTS = 4
-        private const val BUFFER_BYTES = 64 * 1024
-        private const val PROGRESS_INTERVAL_MILLIS = 250L
     }
 }
