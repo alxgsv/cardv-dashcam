@@ -4,8 +4,9 @@ Open-source **Android, iOS and macOS** app for the **Geely Atlas / Atlas Pro fac
 **AIT / MStar "CarDV" Wi-Fi dashcams**: browse, play and download recordings, live view, snapshots, lock clips,
 clock sync and settings — no cloud, no account.
 
-> Status: protocol fully reverse-engineered, shared core (M1) and the Android MVP (M2) implemented;
-> Apple apps in development. See the [plan](docs/PLAN.md).
+> Status: protocol fully reverse-engineered, shared core (M1) and Android M2–M6 implemented
+> (library, playback, downloads, live view, controls and settings); Apple apps in development.
+> See the [plan](docs/PLAN.md).
 
 ## Is my dashcam supported?
 
@@ -76,8 +77,27 @@ cleartext to `192.168.42.1`.
   asks for `WRITE_EXTERNAL_STORAGE`; Android 10+ needs no storage permission.
 - **Not in M2** — live view (M4), camera controls (M5) and settings screens (M6).
 
+## Android live view, controls and settings (M4–M6)
+
+- **Live view** — Media3 `RtspMediaSource` on `liveRTSP/av2` (720p H.264 + AAC), RTP forced over
+  TCP and the RTSP socket bound to the camera Wi-Fi. It has connecting/error/stopped states and a
+  start/stop control. This is a separate stream from the M2 HTTP playback URL.
+- **Camera** — status card (recording, SD state, free space, firmware, current file, camera clock)
+  plus mic mute/unmute, snapshot (`Video=capture`), lock current clip (`Video=rec_emer`, then a
+  LOCK re-poll because the folder catches up late) and record stop/start. Success, refusal and
+  hung-camera outcomes are shown in place; a hung camera is never retried.
+- **Settings** — rows and values come from the shared `SettingsCatalog`. `SAFE` settings are shown
+  by default; `EXPERIMENTAL` settings require an explicit, persisted opt-in; `NEEDS_STANDBY`
+  settings stop recording, confirm Standby, apply, verify (SD format) and restart recording,
+  re-applying the microphone. SD format and factory reset need a typed confirmation, warn about
+  data loss and offer "Download SOS + LOCK first". `Flicker`, `Net`, `Wi-Fi` changes and
+  `action=flash` are not reachable.
+- **Media3 1.11.1 or newer is required.** Media3 1.9.x has an RTSP H.264 regression for frames
+  split across several RTP packets (androidx/media#3121), which makes the camera live stream stall.
+
 Debug builds keep the test camera override out of the way: tap the version pill five times on the
-connect screen to reveal **Developer options**.
+connect screen to reveal **Developer options**. The same card has a debug live RTSP URL for a local
+MediaMTX/ffmpeg test stream.
 
 ## Documentation
 
