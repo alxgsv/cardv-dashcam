@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Debug builds allow cleartext to the fake camera (10.0.2.2 from the emulator, a LAN address on a
+  device). The release policy still allows cleartext to 192.168.42.1 only.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>
