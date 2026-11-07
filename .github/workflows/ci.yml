@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shared-and-android:
+    name: Shared core + Android
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Test shared core and build Android app
+        run: ./gradlew :shared:testDebugUnitTest :androidApp:assembleDebug :androidApp:lintDebug --stacktrace
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: cardv-dashcam-debug
+          path: androidApp/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+
+  apple:
+    name: iOS + macOS apps
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Build iOS simulator app
+        run: >
+          xcodebuild -project appleApp/CardvDashcam.xcodeproj
+          -scheme CardvDashcam -configuration Debug
+          -sdk iphonesimulator -destination 'generic/platform=iOS Simulator'
+          ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO
+          build
+
+      - name: Build macOS app
+        run: >
+          xcodebuild -project appleApp/CardvDashcam.xcodeproj
+          -scheme CardvDashcam -configuration Debug
+          -sdk macosx
+          ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO
+          build

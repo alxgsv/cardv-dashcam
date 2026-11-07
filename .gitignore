@@ -1,0 +1,19 @@
+# Probe output (contains MAC addresses, Wi-Fi names, clip times)
+tools/probe/*report*
+tools/probe/ait_settings_[0-9]*
+tools/probe/ait*_*.jpg
+tools/probe/*.h264
+__pycache__/
+# Gradle / Android
+.gradle/
+.kotlin/
+build/
+local.properties
+*.iml
+.idea/
+# Xcode
+DerivedData/
+xcuserdata/
+*.xcuserstate
+# macOS
+.DS_Store
