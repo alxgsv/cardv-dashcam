@@ -4,8 +4,8 @@ Open-source **Android, iOS and macOS** app for the **Geely Atlas / Atlas Pro fac
 **AIT / MStar "CarDV" Wi-Fi dashcams**: browse, play and download recordings, live view, snapshots, lock clips,
 clock sync and settings — no cloud, no account.
 
-> Status: protocol fully reverse-engineered, shared core implemented (milestone M1), apps in
-> development. See the [plan](docs/PLAN.md).
+> Status: protocol fully reverse-engineered, shared core (M1) and the Android MVP (M2) implemented;
+> Apple apps in development. See the [plan](docs/PLAN.md).
 
 ## Is my dashcam supported?
 
@@ -33,6 +33,7 @@ Apple apps. Point `ANDROID_HOME` (or `sdk.dir` in `local.properties`) at your An
 ```sh
 ./gradlew :androidApp:assembleDebug     # APK in androidApp/build/outputs/apk/debug/
 ./gradlew :shared:testDebugUnitTest     # shared-core tests on the JVM
+./gradlew :androidApp:testDebugUnitTest # Android URL/download helper tests
 ./gradlew :androidApp:lintDebug
 ```
 
@@ -44,8 +45,8 @@ so there is no XCFramework to build or carry around first:
 open appleApp/CardvDashcam.xcodeproj
 ```
 
-CI (`.github/workflows/ci.yml`) runs the shared tests, builds and lints the Android app, and builds both
-Apple destinations on every push and pull request.
+CI (`.github/workflows/ci.yml`) runs the shared and Android tests, builds and lints the Android app,
+and builds both Apple destinations on every push and pull request.
 
 No camera at hand? The shared tests start the [fake camera](tools/fake-camera/README.md) themselves;
 you can also run it for the apps:
@@ -53,6 +54,26 @@ you can also run it for the apps:
 ```sh
 python3 tools/fake-camera/fake_camera.py --port 8080
 ```
+
+Debug builds show a **Debug camera address** field on the connect screen (release builds always use
+`192.168.42.1`). On the Android emulator point it at `http://10.0.2.2:8080`; on a device use your
+computer's LAN address. Debug builds allow cleartext to that address; the release policy only allows
+cleartext to `192.168.42.1`.
+
+## Android MVP (M2)
+
+- **Connect** — join the dashcam's Wi-Fi in Android settings. The app finds the `192.168.42.0/24`
+  network, binds the process to it and gives Ktor, ExoPlayer and downloads OkHttp clients bound to
+  that network's socket factory, so traffic never falls back to mobile data. The camera clock is
+  synced on every connect (`TimeSettings` through the shared core).
+- **Library** — DCIM (loop), SOS, LOCK and Photo folders; MP4 thumbnails from the embedded `skip`
+  box, photo thumbnails from the JPEG; sort newest/oldest/name and group by day.
+- **Playback** — Media3 ExoPlayer streams MP4 directly from the camera over HTTP; `moov` is before
+  `mdat` on this camera, so seeking works without downloading the clip first.
+- **Download** — WorkManager downloads with `Range` resume and a partial file that survives process
+  death, then exports through MediaStore to `Movies/CarDV` (photos: `Pictures/CarDV`). Android 8–9
+  asks for `WRITE_EXTERNAL_STORAGE`; Android 10+ needs no storage permission.
+- **Not in M2** — live view (M4), camera controls (M5) and settings screens (M6).
 
 ## Documentation
 

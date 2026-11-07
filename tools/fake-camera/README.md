@@ -11,7 +11,7 @@ python3 tools/fake-camera/fake_camera.py
 # fake camera listening on http://127.0.0.1:8080
 ```
 
-Then point a test, probe or future app build at it:
+Then point the app or a test at it:
 
 | Client | Base URL |
 |---|---|
@@ -19,9 +19,9 @@ Then point a test, probe or future app build at it:
 | Android emulator | `http://10.0.2.2:8080` |
 | Physical device on the same LAN | `http://<your-computer-ip>:8080` |
 
-The M1 apps are still scaffolds; these URLs are for the shared tests and probes. The Android app's
-cleartext policy currently allows only `192.168.42.1`, so using the fake camera from the app will
-need a debug override in M2.
+In a debug Android build, open the connect screen, enter that URL under **Debug camera address** and
+press **Apply**. Release builds always use `192.168.42.1`; debug builds permit cleartext to the fake
+camera while the release policy allows only the camera address.
 
 Options:
 
