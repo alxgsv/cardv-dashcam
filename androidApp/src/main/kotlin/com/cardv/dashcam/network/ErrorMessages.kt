@@ -10,15 +10,15 @@ import java.net.ConnectException
 import java.net.SocketTimeoutException as JavaSocketTimeoutException
 import java.net.UnknownHostException
 
-/** Turn protocol/transport failures into something a driver can act on. */
-fun Throwable.friendlyCameraMessage(baseUrl: String): String = when (this) {
-    is CameraNetworkException -> message ?: "The dashcam Wi-Fi is not available."
-    is CameraHungException -> "The dashcam stopped responding. Restart the car to reset it."
-    is CameraException -> message ?: "The dashcam returned an unexpected answer."
+/** Short, human copy for the connect screen; no addresses, ports or protocol codes. */
+fun Throwable.friendlyCameraMessage(@Suppress("UNUSED_PARAMETER") baseUrl: String): String = when (this) {
+    is CameraNetworkException -> "No dashcam Wi-Fi yet. Join the camera's network, then try again."
+    is CameraHungException -> "The dashcam stopped responding. Restart the car, then try again."
+    is CameraException -> "The camera answered in an unexpected way. Try reconnecting."
     is HttpRequestTimeoutException, is ConnectTimeoutException, is SocketTimeoutException,
     is JavaSocketTimeoutException, is ConnectException, is UnknownHostException,
-    -> "Cannot reach the dashcam at $baseUrl. Join the camera's Wi-Fi (it has no internet) and retry."
+    -> "Can't reach the dashcam. Check that it is on and your phone is on its Wi-Fi."
 
-    is IOException -> "Network error while talking to $baseUrl: ${message ?: "connection failed"}."
-    else -> message ?: this::class.simpleName ?: "Unexpected error"
+    is IOException -> "The connection dropped. Reconnect to the camera's Wi-Fi and try again."
+    else -> message ?: "Something went wrong. Try again."
 }

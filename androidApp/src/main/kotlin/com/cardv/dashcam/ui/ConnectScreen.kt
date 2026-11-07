@@ -1,6 +1,14 @@
 package com.cardv.dashcam.ui
 
+import android.content.Intent
+import android.provider.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -9,31 +17,50 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.cardv.dashcam.BuildConfig
 import com.cardv.dashcam.ConnectionPhase
 import com.cardv.dashcam.MainUiState
+import com.cardv.dashcam.R
 import com.cardv.dashcam.network.CameraAddress
-import com.cardv.shared.BuildInfo
-import com.cardv.shared.platformName
 
 @Composable
 fun ConnectScreen(
@@ -42,173 +69,418 @@ fun ConnectScreen(
     onUseBaseUrl: (String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Scaffold(modifier = modifier.fillMaxSize()) { padding ->
+    val context = LocalContext.current
+    val colors = MaterialTheme.colorScheme
+    var developerOpen by remember { mutableStateOf(false) }
+    var versionTaps by remember { mutableIntStateOf(0) }
+    var developerUrl by remember(state.baseUrl) {
+        mutableStateOf(if (state.debugOverride) state.baseUrl else "")
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    listOf(colors.surface, colors.background, colors.background),
+                ),
+            ),
+    ) {
+        // A soft ember glow behind the product render.
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(430.dp)
+                .background(
+                    Brush.radialGradient(
+                        colors = listOf(colors.primary.copy(alpha = 0.20f), Color.Transparent),
+                        radius = 760f,
+                    ),
+                ),
+        )
+
         Column(
             modifier = Modifier
-                .padding(padding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(24.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .statusBarsPadding()
+                .padding(horizontal = 24.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(
-                text = "CarDV Dashcam",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.SemiBold,
-            )
-            Text(
-                text = "Browse, play and download recordings straight from the dashcam over its Wi-Fi.",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp),
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .background(colors.primary, CircleShape),
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = "DASHCAM",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.onSurfaceVariant,
+                    letterSpacing = 3.sp,
+                )
+                Spacer(Modifier.weight(1f))
+                Surface(
+                    shape = CircleShape,
+                    color = colors.surfaceVariant,
+                    modifier = Modifier.clickable {
+                        versionTaps++
+                        if (versionTaps >= 5) developerOpen = true
+                    },
                 ) {
-                    Text("Connect to the dashcam", style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "1. Open Android Wi-Fi settings and join the camera's network. It has no internet; " +
-                            "choose “Stay connected” if Android asks.",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                    Text(
-                        "2. Come back here and press Connect. The app binds traffic to that Wi-Fi and " +
-                            "sets the camera clock automatically.",
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = "v${BuildConfig.VERSION_NAME}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     )
                 }
             }
 
-            when (state.phase) {
-                ConnectionPhase.CONNECTING -> Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
-                    Column {
-                        Text("Connecting…", style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            state.baseUrl,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-
-                ConnectionPhase.FAILED -> Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            text = if (state.hung) "Dashcam not responding" else "Could not connect",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        Text(
-                            text = state.errorMessage ?: "Unknown error",
-                            style = MaterialTheme.typography.bodyMedium,
-                        )
-                        if (state.hung) {
-                            Text(
-                                "A command may have left the camera's small web server busy. " +
-                                    "Restart the car (or power-cycle the dashcam) and try again. " +
-                                    "Do not keep retrying.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    }
-                }
-
-                ConnectionPhase.IDLE, ConnectionPhase.CONNECTED -> Unit
-            }
-
-            if (state.phase != ConnectionPhase.CONNECTING) {
-                Button(onClick = onConnect, modifier = Modifier.fillMaxWidth()) {
-                    Text(if (state.phase == ConnectionPhase.FAILED) "Try again" else "Connect")
-                }
-            }
+            Spacer(Modifier.height(18.dp))
+            HeroLens()
+            Spacer(Modifier.height(10.dp))
 
             Text(
-                text = "Camera address: ${state.baseUrl}" +
-                    if (state.debugOverride) "  (debug override)" else "",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                text = buildAnnotatedString {
+                    append("Car")
+                    withStyle(SpanStyle(color = colors.primary)) { append("DV") }
+                },
+                style = MaterialTheme.typography.displaySmall,
+                color = colors.onBackground,
             )
-
-            if (BuildConfig.DEBUG) {
-                DebugCameraCard(current = state, onUseBaseUrl = onUseBaseUrl)
-            }
-
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Shared core ${BuildInfo.VERSION} · $platformName · app ${BuildConfig.VERSION_NAME}",
+                text = "The road,\nreplayed.",
+                style = MaterialTheme.typography.headlineMedium,
+                color = colors.onBackground,
+                textAlign = TextAlign.Center,
+                lineHeight = 34.sp,
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "Browse, stream and save clips from your dashcam.\nNo cloud. No account.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            Spacer(Modifier.height(26.dp))
+
+            ConnectionCard(state = state)
+            Spacer(Modifier.height(16.dp))
+
+            Button(
+                onClick = onConnect,
+                enabled = state.phase != ConnectionPhase.CONNECTING,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(58.dp),
+                shape = RoundedCornerShape(20.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colors.primary,
+                    contentColor = colors.onPrimary,
+                    disabledContainerColor = colors.surfaceVariant,
+                    disabledContentColor = colors.onSurfaceVariant,
+                ),
+            ) {
+                if (state.phase == ConnectionPhase.CONNECTING) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = colors.onSurfaceVariant,
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Icon(
+                        imageVector = if (state.phase == ConnectionPhase.FAILED) {
+                            Icons.Rounded.ErrorOutline
+                        } else {
+                            Icons.Rounded.Wifi
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                    )
+                }
+                Spacer(Modifier.size(10.dp))
+                Text(
+                    text = when (state.phase) {
+                        ConnectionPhase.CONNECTING -> "Connecting…"
+                        ConnectionPhase.FAILED -> "Try again"
+                        else -> "Connect to dashcam"
+                    },
+                    style = MaterialTheme.typography.labelLarge,
+                )
+            }
+
+            TextButton(
+                onClick = {
+                    runCatching {
+                        context.startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+                    }
+                },
+            ) {
+                Icon(
+                    Icons.Rounded.Settings,
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                )
+                Spacer(Modifier.size(6.dp))
+                Text("Open Wi-Fi settings")
+            }
+
+            Spacer(Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Step("01", "Power on", Modifier.weight(1f))
+                Step("02", "Join Wi-Fi", Modifier.weight(1f))
+                Step("03", "Connect", Modifier.weight(1f))
+            }
+
+            if (BuildConfig.DEBUG && (versionTaps >= 5 || state.debugOverride)) {
+                Spacer(Modifier.height(18.dp))
+                if (versionTaps >= 5) {
+                    TextButton(onClick = { developerOpen = !developerOpen }) {
+                        Icon(
+                            Icons.Rounded.Tune,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.size(6.dp))
+                        Text(if (developerOpen) "Hide developer options" else "Developer options")
+                    }
+                }
+                AnimatedVisibility(visible = developerOpen) {
+                    DeveloperCard(
+                        current = state,
+                        url = developerUrl,
+                        onUrlChange = { developerUrl = it },
+                        onApply = { onUseBaseUrl(developerUrl.ifBlank { null }) },
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = "Made for the open road",
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                color = colors.onSurfaceVariant.copy(alpha = 0.65f),
+                letterSpacing = 1.sp,
             )
         }
     }
 }
 
 @Composable
-private fun DebugCameraCard(
-    current: MainUiState,
-    onUseBaseUrl: (String?) -> Unit,
-) {
-    var input by remember { mutableStateOf(if (current.debugOverride) current.baseUrl else "") }
+private fun HeroLens() {
+    val colors = MaterialTheme.colorScheme
+    Box(
+        modifier = Modifier.size(238.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(236.dp)
+                .border(1.dp, colors.outline.copy(alpha = 0.45f), CircleShape),
+        )
+        Box(
+            modifier = Modifier
+                .size(206.dp)
+                .background(
+                    Brush.radialGradient(
+                        listOf(colors.primary.copy(alpha = 0.16f), Color.Transparent),
+                    ),
+                    CircleShape,
+                ),
+        )
+        Image(
+            painter = painterResource(R.drawable.hero_dashcam),
+            contentDescription = null,
+            modifier = Modifier.size(218.dp),
+        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .size(8.dp)
+                .background(colors.primary, CircleShape),
+        )
+    }
+}
 
-    Card(modifier = Modifier.fillMaxWidth()) {
+@Composable
+private fun ConnectionCard(state: MainUiState) {
+    val colors = MaterialTheme.colorScheme
+    val isFailure = state.phase == ConnectionPhase.FAILED
+    val isConnecting = state.phase == ConnectionPhase.CONNECTING
+
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(24.dp),
+        color = colors.surfaceVariant.copy(alpha = 0.62f),
+        border = androidx.compose.foundation.BorderStroke(
+            1.dp,
+            if (isFailure) colors.error.copy(alpha = 0.35f) else colors.outlineVariant,
+        ),
+    ) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .background(
+                        if (isFailure) colors.errorContainer else colors.surface,
+                        CircleShape,
+                    ),
+                contentAlignment = Alignment.Center,
+            ) {
+                when {
+                    isConnecting -> CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        color = colors.primary,
+                        strokeWidth = 2.dp,
+                    )
+
+                    isFailure -> Icon(
+                        Icons.Rounded.ErrorOutline,
+                        contentDescription = null,
+                        tint = colors.error,
+                        modifier = Modifier.size(22.dp),
+                    )
+
+                    else -> Icon(
+                        Icons.Rounded.Wifi,
+                        contentDescription = null,
+                        tint = colors.primary,
+                        modifier = Modifier.size(22.dp),
+                    )
+                }
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                Text(
+                    text = when {
+                        isConnecting -> "Looking for your dashcam"
+                        isFailure -> if (state.hung) "Camera needs a restart" else "Dashcam not found"
+                        else -> "Ready when you are"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.onSurface,
+                )
+                Text(
+                    text = when {
+                        isConnecting -> "Keep the camera on and stay on its Wi-Fi."
+                        isFailure -> state.errorMessage ?: "Try again in a moment."
+                        else -> "Join the dashcam's Wi-Fi, then connect."
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = if (isFailure) colors.error else colors.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun DeveloperCard(
+    current: MainUiState,
+    url: String,
+    onUrlChange: (String) -> Unit,
+    onApply: () -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(22.dp),
+        color = colors.surfaceVariant.copy(alpha = 0.5f),
+    ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            Text("Debug camera address", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Test camera",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            Text(
+                "Point the app at a local fake camera. Release builds ignore this.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = colors.onSurfaceVariant,
+            )
             OutlinedTextField(
-                value = input,
-                onValueChange = { input = it },
+                value = url,
+                onValueChange = onUrlChange,
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true,
-                label = { Text("Base URL override") },
+                label = { Text("Base URL") },
                 placeholder = { Text("http://10.0.2.2:8080") },
                 supportingText = {
-                    Text("Empty means ${CameraAddress.CAMERA_HOST}. Debug builds only; release builds ignore this.")
+                    Text("Empty = ${CameraAddress.CAMERA_HOST} (the real camera)")
                 },
             )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { onUseBaseUrl(input.ifBlank { null }) },
+                    onClick = onApply,
                     enabled = current.phase != ConnectionPhase.CONNECTING,
+                    shape = RoundedCornerShape(14.dp),
                 ) {
                     Text("Apply")
                 }
                 TextButton(
                     onClick = {
-                        input = "http://10.0.2.2:8080"
-                        onUseBaseUrl("http://10.0.2.2:8080")
+                        onUrlChange("http://10.0.2.2:8080")
+                        onApply()
                     },
                     enabled = current.phase != ConnectionPhase.CONNECTING,
                 ) {
-                    Text("Fake camera")
+                    Text("Test stream")
                 }
                 TextButton(
                     onClick = {
-                        input = ""
-                        onUseBaseUrl(null)
+                        onUrlChange("")
+                        onApply()
                     },
                     enabled = current.phase != ConnectionPhase.CONNECTING,
                 ) {
                     Text("Reset")
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun Step(number: String, label: String, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(30.dp)
+                .clip(CircleShape)
+                .background(colors.surfaceVariant),
+            contentAlignment = Alignment.Center,
+        ) {
             Text(
-                "Fake camera from the emulator: python3 tools/fake-camera/fake_camera.py, " +
-                    "then use http://10.0.2.2:8080.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                number,
+                style = MaterialTheme.typography.labelSmall,
+                color = colors.primary,
+                fontWeight = FontWeight.Bold,
             )
         }
+        Text(
+            label,
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.onSurfaceVariant,
+            maxLines = 1,
+        )
     }
 }

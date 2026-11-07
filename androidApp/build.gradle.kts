@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.compose.ui.tooling.preview)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.core)
+    implementation(libs.compose.material.icons.extended)
 
     // M2: streaming playback with seeking, background downloads, explicit network binding.
     implementation(libs.androidx.media3.exoplayer)

@@ -106,16 +106,16 @@ class DownloadWorker(
         } catch (cancellation: CancellationException) {
             // Keep the .part file: cancelling pauses the download, it does not throw bytes away.
             throw cancellation
-        } catch (failure: IOException) {
+        } catch (_: IOException) {
             if (runAttemptCount >= MAX_ATTEMPTS) {
-                Result.failure(error("Download failed after ${runAttemptCount + 1} attempts: ${failure.message}"))
+                Result.failure(error("Couldn't finish the download. Check the camera's Wi-Fi and try again."))
             } else {
                 Result.retry()
             }
-        } catch (failure: SecurityException) {
-            Result.failure(error("Storage permission is missing: ${failure.message}"))
-        } catch (failure: Exception) {
-            Result.failure(error(failure.message ?: failure::class.simpleName ?: "Download failed"))
+        } catch (_: SecurityException) {
+            Result.failure(error("Storage access is needed to save recordings."))
+        } catch (_: Exception) {
+            Result.failure(error("Couldn't save this clip. Try again."))
         }
     }
 
