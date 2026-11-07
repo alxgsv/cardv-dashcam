@@ -79,25 +79,8 @@ fun ConnectScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(colors.surface, colors.background, colors.background),
-                ),
-            ),
+            .background(colors.background),
     ) {
-        // A soft ember glow behind the product render.
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(430.dp)
-                .background(
-                    Brush.radialGradient(
-                        colors = listOf(colors.primary.copy(alpha = 0.20f), Color.Transparent),
-                        radius = 760f,
-                    ),
-                ),
-        )
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
