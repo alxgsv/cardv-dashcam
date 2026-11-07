@@ -216,6 +216,29 @@ Camera.Menu.VideoClipTime=5MIN
     }
 
     @Test
+    fun experimentalOptInCanFollowTheUserWithoutReconnecting() = runTest {
+        var setRequests = 0
+        val client = client { request ->
+            if (request.url.parameters["action"] == "set") {
+                setRequests++
+                textResponse("0\nOK\n")
+            } else {
+                textResponse("0\nOK\nCamera.Menu.EV=EV0\n")
+            }
+        }
+
+        assertIs<WriteResult.Refused>(real { client.setSetting(SettingsCatalog.GSENSOR, "LOW") })
+        client.setExperimentalAllowed(true)
+        assertIs<WriteResult.Applied<Unit>>(
+            real { client.setSetting(SettingsCatalog.GSENSOR, "LEVEL2") },
+        )
+        client.setExperimentalAllowed(false)
+        assertIs<WriteResult.Refused>(real { client.setSetting(SettingsCatalog.GSENSOR, "OFF") })
+        assertEquals(1, setRequests)
+        client.close()
+    }
+
+    @Test
     fun needsStandbyIsRefusedWhileRecording() = runTest {
         var setRequests = 0
         val client = client { request ->

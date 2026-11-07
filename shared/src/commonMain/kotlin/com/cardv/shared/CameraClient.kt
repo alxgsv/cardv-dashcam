@@ -24,6 +24,7 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpTimeout
 import kotlinx.coroutines.delay
 import kotlinx.datetime.LocalDateTime
+import kotlin.concurrent.Volatile
 
 data class CameraClientConfig(
     val readTimeoutMillis: Long = 10_000,
@@ -86,8 +87,21 @@ class CameraClient(
 
     val baseUrl: String = baseUrl.trimEnd('/')
 
+    /**
+     * Whether [SafetyLevel.EXPERIMENTAL] settings may be written. It starts from
+     * [CameraClientConfig.allowExperimental] and can follow the user's explicit opt-in while the
+     * session is open; the catalog still validates names and values either way.
+     */
+    @Volatile
+    private var allowExperimental: Boolean = config.allowExperimental
+
     /** True after a write whose health check failed. Further writes are refused until a restart. */
     val isHung: Boolean get() = queue.isHung
+
+    /** Explicit opt-in/opt-out for experimental settings; never bypasses the catalog. */
+    fun setExperimentalAllowed(allowed: Boolean) {
+        allowExperimental = allowed
+    }
 
     /**
      * Cheap liveness check: `Camera.Menu.EV` plus the preview status.
@@ -210,7 +224,8 @@ class CameraClient(
      * Write a setting, but only through [SettingsCatalog].
      *
      * - `FORBIDDEN` and unknown properties are refused without touching the network;
-     * - `EXPERIMENTAL` is refused unless [CameraClientConfig.allowExperimental] is set;
+     * - `EXPERIMENTAL` is refused unless experimental writes were opted in (the config default
+     *   or [setExperimentalAllowed]);
      * - `NEEDS_STANDBY` is refused while the camera reports `Recording`;
      * - values are validated against the catalog.
      */
@@ -229,7 +244,7 @@ class CameraClient(
                 level = catalogSetting.level,
             )
 
-            SafetyLevel.EXPERIMENTAL -> if (!config.allowExperimental) {
+            SafetyLevel.EXPERIMENTAL -> if (!allowExperimental) {
                 return WriteResult.Refused(
                     reason = "experimental settings are disabled",
                     setting = catalogSetting.name,
