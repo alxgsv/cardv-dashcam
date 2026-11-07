@@ -31,12 +31,6 @@ import com.cardv.dashcam.ui.PlaybackScreen
 import com.cardv.dashcam.ui.theme.CarDVTheme
 import com.cardv.shared.model.Clip
 
-private sealed interface AppRoute {
-    data object Library : AppRoute
-    data class Playback(val clip: Clip) : AppRoute
-    data class Photo(val clip: Clip) : AppRoute
-}
-
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,12 +39,6 @@ class MainActivity : ComponentActivity() {
             CarDVTheme {
                 val viewModel: MainViewModel = viewModel()
                 val state by viewModel.state.collectAsStateWithLifecycle()
-                var route by remember { mutableStateOf<AppRoute>(AppRoute.Library) }
-
-                LaunchedEffect(state.phase) {
-                    if (state.phase != ConnectionPhase.CONNECTED) route = AppRoute.Library
-                }
-
                 val context = LocalContext.current
                 var pendingDownload by remember { mutableStateOf<Clip?>(null) }
                 val storagePermissionLauncher = rememberLauncherForActivityResult(
@@ -82,63 +70,56 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                BackHandler(enabled = route != AppRoute.Library) { route = AppRoute.Library }
+                val openClip = state.openClip
+                BackHandler(enabled = openClip != null) { viewModel.closeClip() }
 
                 Box(Modifier.fillMaxSize()) {
-                    if (!state.isConnected) {
-                        ConnectScreen(
+                    when {
+                        !state.isConnected -> ConnectScreen(
                             state = state,
                             onConnect = viewModel::connect,
                             onUseBaseUrl = viewModel::useBaseUrl,
                         )
-                    } else {
-                        when (val current = route) {
-                            AppRoute.Library -> LibraryScreen(
-                                state = state,
-                                onSelectFolder = viewModel::selectFolder,
-                                onSort = viewModel::setSort,
-                                onToggleGrouping = viewModel::toggleGrouping,
-                                onRefresh = viewModel::refresh,
-                                onDisconnect = viewModel::disconnect,
-                                onOpen = { clip ->
-                                    route = if (clip.isVideo) {
-                                        AppRoute.Playback(clip)
-                                    } else {
-                                        AppRoute.Photo(clip)
-                                    }
-                                },
-                                onThumbnail = viewModel::ensureThumbnail,
-                                onDownload = downloadWithPermission,
-                            )
 
-                            is AppRoute.Playback -> {
-                                val handle = viewModel.playbackHandle(current.clip)
-                                if (handle == null) {
-                                    LaunchedEffect(current.clip.path) { route = AppRoute.Library }
-                                } else {
-                                    PlaybackScreen(
-                                        handle = handle,
-                                        downloadState = state.downloads[current.clip.path],
-                                        onDownload = { downloadWithPermission(current.clip) },
-                                        onBack = { route = AppRoute.Library },
-                                    )
-                                }
-                            }
-
-                            is AppRoute.Photo -> {
-                                val handle = viewModel.photoHandle(current.clip)
-                                if (handle == null) {
-                                    LaunchedEffect(current.clip.path) { route = AppRoute.Library }
-                                } else {
-                                    PhotoScreen(
-                                        handle = handle,
-                                        downloadState = state.downloads[current.clip.path],
-                                        onDownload = { downloadWithPermission(current.clip) },
-                                        onBack = { route = AppRoute.Library },
-                                    )
-                                }
+                        openClip != null && openClip.isVideo -> {
+                            val handle = viewModel.playbackHandle(openClip)
+                            if (handle == null) {
+                                LaunchedEffect(openClip.path) { viewModel.closeClip() }
+                            } else {
+                                PlaybackScreen(
+                                    handle = handle,
+                                    downloadState = state.downloads[openClip.path],
+                                    onDownload = { downloadWithPermission(openClip) },
+                                    onBack = viewModel::closeClip,
+                                )
                             }
                         }
+
+                        openClip != null -> {
+                            val handle = viewModel.photoHandle(openClip)
+                            if (handle == null) {
+                                LaunchedEffect(openClip.path) { viewModel.closeClip() }
+                            } else {
+                                PhotoScreen(
+                                    handle = handle,
+                                    downloadState = state.downloads[openClip.path],
+                                    onDownload = { downloadWithPermission(openClip) },
+                                    onBack = viewModel::closeClip,
+                                )
+                            }
+                        }
+
+                        else -> LibraryScreen(
+                            state = state,
+                            onSelectFolder = viewModel::selectFolder,
+                            onSort = viewModel::setSort,
+                            onToggleGrouping = viewModel::toggleGrouping,
+                            onRefresh = viewModel::refresh,
+                            onDisconnect = viewModel::disconnect,
+                            onOpen = viewModel::openClip,
+                            onThumbnail = viewModel::ensureThumbnail,
+                            onDownload = downloadWithPermission,
+                        )
                     }
                 }
             }

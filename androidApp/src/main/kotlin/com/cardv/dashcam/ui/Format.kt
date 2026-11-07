@@ -32,6 +32,18 @@ fun formatDuration(seconds: Double?): String? {
     return String.format(Locale.getDefault(), "%d:%02d", total / 60, total % 60)
 }
 
+fun formatPlaybackTime(millis: Long): String {
+    val total = (millis / 1000).coerceAtLeast(0)
+    val hours = total / 3600
+    val minutes = (total % 3600) / 60
+    val seconds = total % 60
+    return if (hours > 0) {
+        String.format(Locale.getDefault(), "%d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format(Locale.getDefault(), "%d:%02d", minutes, seconds)
+    }
+}
+
 fun formatLocalDate(date: LocalDate): String =
     "${date.dayOfMonth} ${MONTHS[date.monthNumber - 1]} ${date.year}"
 

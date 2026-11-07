@@ -69,11 +69,15 @@ cleartext to `192.168.42.1`.
 - **Library** — DCIM (loop), SOS, LOCK and Photo folders; MP4 thumbnails from the embedded `skip`
   box, photo thumbnails from the JPEG; sort newest/oldest/name and group by day.
 - **Playback** — Media3 ExoPlayer streams MP4 directly from the camera over HTTP; `moov` is before
-  `mdat` on this camera, so seeking works without downloading the clip first.
+  `mdat` on this camera, so seeking works without downloading the clip first. The player opens in
+  landscape with a custom seek bar and turns the system bars off for an immersive view.
 - **Download** — WorkManager downloads with `Range` resume and a partial file that survives process
   death, then exports through MediaStore to `Movies/CarDV` (photos: `Pictures/CarDV`). Android 8–9
   asks for `WRITE_EXTERNAL_STORAGE`; Android 10+ needs no storage permission.
 - **Not in M2** — live view (M4), camera controls (M5) and settings screens (M6).
+
+Debug builds keep the test camera override out of the way: tap the version pill five times on the
+connect screen to reveal **Developer options**.
 
 ## Documentation
 

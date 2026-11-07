@@ -56,6 +56,9 @@ data class MainUiState(
     val folderErrors: Map<Folder, String> = emptyMap(),
     val thumbnails: Map<String, Bitmap> = emptyMap(),
     val downloads: Map<String, DownloadUiState> = emptyMap(),
+    /** Non-null while the player or photo viewer is open. Kept in the view model so rotation
+     *  (including the player's landscape request) does not send the user back to the library. */
+    val openClip: Clip? = null,
 ) {
     val isConnected: Boolean get() = phase == ConnectionPhase.CONNECTED
     val clips: List<Clip> get() = clipsByFolder[folder].orEmpty()
@@ -111,6 +114,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     loadingFolders = emptySet(),
                     folderErrors = emptyMap(),
                     thumbnails = emptyMap(),
+                    openClip = null,
                 )
             }
 
@@ -197,8 +201,17 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 loadingFolders = emptySet(),
                 folderErrors = emptyMap(),
                 thumbnails = emptyMap(),
+                openClip = null,
             )
         }
+    }
+
+    fun openClip(clip: Clip) {
+        _state.update { it.copy(openClip = clip) }
+    }
+
+    fun closeClip() {
+        _state.update { it.copy(openClip = null) }
     }
 
     fun retry() {
