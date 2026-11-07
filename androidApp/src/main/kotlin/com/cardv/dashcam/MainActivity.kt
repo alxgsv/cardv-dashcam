@@ -24,10 +24,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.cardv.dashcam.ui.CameraScreen
 import com.cardv.dashcam.ui.ConnectScreen
 import com.cardv.dashcam.ui.LibraryScreen
+import com.cardv.dashcam.ui.LiveScreen
 import com.cardv.dashcam.ui.PhotoScreen
 import com.cardv.dashcam.ui.PlaybackScreen
+import com.cardv.dashcam.ui.SettingsScreen
 import com.cardv.dashcam.ui.theme.CarDVTheme
 import com.cardv.shared.model.Clip
 
@@ -72,6 +75,9 @@ class MainActivity : ComponentActivity() {
 
                 val openClip = state.openClip
                 BackHandler(enabled = openClip != null) { viewModel.closeClip() }
+                BackHandler(enabled = openClip == null && state.screen != AppScreen.LIBRARY) {
+                    viewModel.backToLibrary()
+                }
 
                 Box(Modifier.fillMaxSize()) {
                     when {
@@ -109,6 +115,33 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
+                        state.screen == AppScreen.LIVE -> LiveScreen(
+                            handle = viewModel.liveHandle(),
+                            onBack = viewModel::backToLibrary,
+                        )
+
+                        state.screen == AppScreen.CONTROLS -> CameraScreen(
+                            state = state,
+                            onBack = viewModel::backToLibrary,
+                            onRefreshStatus = viewModel::refreshCameraStatus,
+                            onToggleMicrophone = viewModel::toggleMicrophone,
+                            onSnapshot = viewModel::captureSnapshot,
+                            onLockClip = viewModel::lockCurrentClip,
+                            onToggleRecording = viewModel::toggleRecording,
+                        )
+
+                        state.screen == AppScreen.SETTINGS -> SettingsScreen(
+                            state = state,
+                            onBack = viewModel::backToLibrary,
+                            onSetExperimental = viewModel::setExperimentalEnabled,
+                            onApplySetting = viewModel::applySetting,
+                            onFormatSd = viewModel::formatSdCard,
+                            onFactoryReset = viewModel::factoryReset,
+                            onDownloadArchive = viewModel::downloadArchive,
+                            onSyncClock = viewModel::syncClockNow,
+                            onOpenControls = { viewModel.openScreen(AppScreen.CONTROLS) },
+                        )
+
                         else -> LibraryScreen(
                             state = state,
                             onSelectFolder = viewModel::selectFolder,
@@ -119,6 +152,9 @@ class MainActivity : ComponentActivity() {
                             onOpen = viewModel::openClip,
                             onThumbnail = viewModel::ensureThumbnail,
                             onDownload = downloadWithPermission,
+                            onOpenLive = { viewModel.openScreen(AppScreen.LIVE) },
+                            onOpenControls = { viewModel.openScreen(AppScreen.CONTROLS) },
+                            onOpenSettings = { viewModel.openScreen(AppScreen.SETTINGS) },
                         )
                     }
                 }

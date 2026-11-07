@@ -30,12 +30,15 @@ import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.ErrorOutline
 import androidx.compose.material.icons.rounded.Lock
+import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.PhotoCamera
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.PowerSettingsNew
 import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.automirrored.rounded.Sort
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.SdCard
 import androidx.compose.material.icons.rounded.Storage
+import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.Warning
 import androidx.compose.material.icons.rounded.Wifi
@@ -87,6 +90,9 @@ fun LibraryScreen(
     onOpen: (Clip) -> Unit,
     onThumbnail: (Clip) -> Unit,
     onDownload: (Clip) -> Unit,
+    onOpenLive: () -> Unit,
+    onOpenControls: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(
@@ -100,6 +106,9 @@ fun LibraryScreen(
             state = state,
             onRefresh = onRefresh,
             onDisconnect = onDisconnect,
+            onOpenLive = onOpenLive,
+            onOpenControls = onOpenControls,
+            onOpenSettings = onOpenSettings,
         )
         FolderPills(state = state, onSelectFolder = onSelectFolder)
         LibraryToolbar(
@@ -170,8 +179,12 @@ private fun LibraryHeader(
     state: MainUiState,
     onRefresh: () -> Unit,
     onDisconnect: () -> Unit,
+    onOpenLive: () -> Unit,
+    onOpenControls: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
+    var moreOpen by remember { mutableStateOf(false) }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,9 +207,31 @@ private fun LibraryHeader(
                     letterSpacing = 2.sp,
                 )
             }
-            HeaderAction(Icons.Rounded.Refresh, "Refresh", onRefresh)
-            Spacer(Modifier.size(8.dp))
-            HeaderAction(Icons.Rounded.PowerSettingsNew, "Disconnect", onDisconnect)
+            HeaderAction(Icons.Rounded.Videocam, "Live view", onOpenLive)
+            Spacer(Modifier.size(6.dp))
+            HeaderAction(Icons.Rounded.Tune, "Camera controls", onOpenControls)
+            Spacer(Modifier.size(6.dp))
+            HeaderAction(Icons.Rounded.Settings, "Settings", onOpenSettings)
+            Spacer(Modifier.size(6.dp))
+            Box {
+                HeaderAction(Icons.Rounded.MoreVert, "More", { moreOpen = true })
+                DropdownMenu(expanded = moreOpen, onDismissRequest = { moreOpen = false }) {
+                    DropdownMenuItem(
+                        text = { Text("Refresh library") },
+                        onClick = {
+                            moreOpen = false
+                            onRefresh()
+                        },
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Disconnect") },
+                        onClick = {
+                            moreOpen = false
+                            onDisconnect()
+                        },
+                    )
+                }
+            }
         }
         Spacer(Modifier.height(12.dp))
         Row(
@@ -204,8 +239,14 @@ private fun LibraryHeader(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             StatusChip(Icons.Rounded.Wifi, "Connected", accent = true)
+            if (state.isRecording) {
+                StatusChip(Icons.Rounded.Videocam, "Recording", accent = true)
+            }
             if (state.clockMessage?.startsWith("Camera clock synced") == true) {
                 StatusChip(Icons.Rounded.CheckCircle, "Clock set")
+            }
+            state.sdStatus?.let { sd ->
+                StatusChip(Icons.Rounded.SdCard, "SD $sd")
             }
             val free = state.freeMb
             if (free != null) {

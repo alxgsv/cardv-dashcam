@@ -65,7 +65,7 @@ import com.cardv.dashcam.network.CameraAddress
 fun ConnectScreen(
     state: MainUiState,
     onConnect: () -> Unit,
-    onUseBaseUrl: (String?) -> Unit,
+    onUseBaseUrl: (String?, String?) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
@@ -74,6 +74,9 @@ fun ConnectScreen(
     var versionTaps by remember { mutableIntStateOf(0) }
     var developerUrl by remember(state.baseUrl) {
         mutableStateOf(if (state.debugOverride) state.baseUrl else "")
+    }
+    var developerLiveUrl by remember(state.liveUrlOverride) {
+        mutableStateOf(state.liveUrlOverride.orEmpty())
     }
 
     Box(
@@ -241,7 +244,14 @@ fun ConnectScreen(
                         current = state,
                         url = developerUrl,
                         onUrlChange = { developerUrl = it },
-                        onApply = { onUseBaseUrl(developerUrl.ifBlank { null }) },
+                        liveUrl = developerLiveUrl,
+                        onLiveUrlChange = { developerLiveUrl = it },
+                        onApply = {
+                            onUseBaseUrl(
+                                developerUrl.ifBlank { null },
+                                developerLiveUrl.ifBlank { null },
+                            )
+                        },
                     )
                 }
             }
@@ -362,6 +372,8 @@ private fun DeveloperCard(
     current: MainUiState,
     url: String,
     onUrlChange: (String) -> Unit,
+    liveUrl: String,
+    onLiveUrlChange: (String) -> Unit,
     onApply: () -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -394,6 +406,17 @@ private fun DeveloperCard(
                     Text("Empty = ${CameraAddress.CAMERA_HOST} (the real camera)")
                 },
             )
+            OutlinedTextField(
+                value = liveUrl,
+                onValueChange = onLiveUrlChange,
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                label = { Text("Live RTSP URL") },
+                placeholder = { Text("rtsp://192.168.1.20:8554/live") },
+                supportingText = {
+                    Text("Empty = rtsp://<camera>:554/liveRTSP/av2")
+                },
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = onApply,
@@ -405,15 +428,17 @@ private fun DeveloperCard(
                 TextButton(
                     onClick = {
                         onUrlChange("http://10.0.2.2:8080")
+                        onLiveUrlChange("")
                         onApply()
                     },
                     enabled = current.phase != ConnectionPhase.CONNECTING,
                 ) {
-                    Text("Test stream")
+                    Text("Test camera")
                 }
                 TextButton(
                     onClick = {
                         onUrlChange("")
+                        onLiveUrlChange("")
                         onApply()
                     },
                     enabled = current.phase != ConnectionPhase.CONNECTING,

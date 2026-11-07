@@ -170,6 +170,9 @@ the camera*). The shared core must make it impossible for a UI to do something d
 
 M2 and M3 can run in parallel once M1 is done.
 
+M4–M6 are implemented on Android. The Apple live-view and controls/settings work is still pending;
+its M4 spike remains the VLCKit-vs-own-client decision in §5.
+
 ## 8. Testing & CI
 
 - **Unit (shared, commonTest):** parsers against real responses from `tools/probe` reports (sanitized fixtures);

@@ -65,8 +65,9 @@ dependencies {
     implementation(libs.compose.material.icons.core)
     implementation(libs.compose.material.icons.extended)
 
-    // M2: streaming playback with seeking, background downloads, explicit network binding.
+    // M2/M4: streaming playback with seeking, live RTSP, explicit network binding.
     implementation(libs.androidx.media3.exoplayer)
+    implementation(libs.androidx.media3.exoplayer.rtsp)
     implementation(libs.androidx.media3.ui)
     implementation(libs.androidx.media3.datasource.okhttp)
     implementation(libs.androidx.work.runtime.ktx)
