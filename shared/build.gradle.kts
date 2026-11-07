@@ -27,8 +27,22 @@ kotlin {
     }
 
     sourceSets {
+        commonMain.dependencies {
+            // HttpClientEngine and LocalDateTime appear in the public CameraClient API.
+            api(libs.ktor.client.core)
+            api(libs.kotlinx.datetime)
+            implementation(libs.kotlinx.coroutines.core)
+        }
+        androidMain.dependencies {
+            implementation(libs.ktor.client.okhttp)
+        }
+        appleMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.kotlinx.coroutines.test)
+            implementation(libs.ktor.client.mock)
         }
     }
 }
