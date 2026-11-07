@@ -4,23 +4,33 @@ import android.app.Application
 import android.graphics.Bitmap
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.cardv.dashcam.download.DownloadPhase
 import com.cardv.dashcam.download.DownloadUiState
 import com.cardv.dashcam.network.CameraMedia
 import com.cardv.dashcam.network.CameraNetwork
 import com.cardv.dashcam.network.CameraSession
+import com.cardv.dashcam.network.LiveHandle
 import com.cardv.dashcam.network.PlaybackHandle
 import com.cardv.dashcam.network.friendlyCameraMessage
 import com.cardv.shared.CameraClient
 import com.cardv.shared.CameraClientConfig
+import com.cardv.shared.features.CameraControls
+import com.cardv.shared.features.CameraSettings
 import com.cardv.shared.features.ClockSync
 import com.cardv.shared.features.ClockSyncOutcome
+import com.cardv.shared.features.LockOutcome
+import com.cardv.shared.features.StandbySettingOutcome
 import com.cardv.shared.library.ClipDayGroup
 import com.cardv.shared.library.ClipLibrary
 import com.cardv.shared.library.ClipSort
 import com.cardv.shared.model.CameraStatus
 import com.cardv.shared.model.Clip
 import com.cardv.shared.model.Folder
+import com.cardv.shared.model.LiveStream
 import com.cardv.shared.protocol.CameraHungException
+import com.cardv.shared.safety.SafetyLevel
+import com.cardv.shared.safety.Setting
+import com.cardv.shared.safety.SettingsCatalog
 import com.cardv.shared.safety.WriteResult
 import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
@@ -35,10 +45,22 @@ import kotlin.math.abs
 
 enum class ConnectionPhase { IDLE, CONNECTING, CONNECTED, FAILED }
 
+/** Top-level destinations that are not a clip player. */
+enum class AppScreen { LIBRARY, LIVE, CONTROLS, SETTINGS }
+
+/** One camera operation, used to show a spinner on exactly the control that is running. */
+enum class CameraAction { RECORD, MIC, SNAPSHOT, LOCK, SYNC_CLOCK, SETTING, DOWNLOAD_ARCHIVE }
+
+data class ActionFeedback(val message: String, val error: Boolean = false)
+
+/** One action result, so failures are drawn as errors instead of green success banners. */
+private data class ActionResult(val message: String, val error: Boolean = false)
+
 data class MainUiState(
     val phase: ConnectionPhase = ConnectionPhase.IDLE,
     val baseUrl: String = CameraClient.DEFAULT_BASE_URL,
     val debugOverride: Boolean = false,
+    val liveUrlOverride: String? = null,
     val errorMessage: String? = null,
     val hung: Boolean = false,
     val firmware: String? = null,
@@ -48,6 +70,12 @@ data class MainUiState(
     val recording: Boolean = false,
     val currentRecordingName: String? = null,
     val clockMessage: String? = null,
+    /** Last full `Camera.*` snapshot; the controls screen shows it directly. */
+    val status: CameraStatus? = null,
+    val screen: AppScreen = AppScreen.LIBRARY,
+    val experimentalEnabled: Boolean = false,
+    val busyAction: CameraAction? = null,
+    val feedback: ActionFeedback? = null,
     val folder: Folder = Folder.DCIM,
     val sort: ClipSort = ClipSort.NEWEST_FIRST,
     val groupByDay: Boolean = true,
@@ -61,6 +89,15 @@ data class MainUiState(
     val openClip: Clip? = null,
 ) {
     val isConnected: Boolean get() = phase == ConnectionPhase.CONNECTED
+    val isRecording: Boolean get() = status?.recording ?: recording
+    val microphoneOn: Boolean
+        get() = status?.soundRecord?.equals("ON", ignoreCase = true) == true
+    val busy: Boolean get() = busyAction != null
+    /** True while any archive download (SOS/LOCK) is still running. */
+    val archiveDownloadsActive: Map<String, DownloadUiState>
+        get() = downloads.filter { (path, download) ->
+            download.isActive && (path.startsWith("/SD/SOS/") || path.startsWith("/SD/LOCK/"))
+        }
     val clips: List<Clip> get() = clipsByFolder[folder].orEmpty()
     val sortedClips: List<Clip> get() = ClipLibrary.sorted(clips, sort)
     val groups: List<ClipDayGroup> get() = ClipLibrary.byDay(clips, sort)
@@ -76,11 +113,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private var connectJob: Job? = null
     private var prefetchJob: Job? = null
     private val thumbnailsInFlight = mutableSetOf<String>()
+    private var statusRefreshInFlight = false
 
     private val _state = MutableStateFlow(
         MainUiState(
             baseUrl = container.preferences.baseUrl(),
             debugOverride = container.preferences.hasDebugOverride,
+            liveUrlOverride = container.preferences.liveUrlOverride(),
+            experimentalEnabled = container.preferences.experimentalEnabled(),
         ),
     )
     val state: StateFlow<MainUiState> = _state.asStateFlow()
@@ -96,11 +136,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             closeSession()
             prefetchJob?.cancel()
             val baseUrl = container.preferences.baseUrl()
+            val experimental = container.preferences.experimentalEnabled()
             _state.update {
                 it.copy(
                     phase = ConnectionPhase.CONNECTING,
                     baseUrl = baseUrl,
                     debugOverride = container.preferences.hasDebugOverride,
+                    liveUrlOverride = container.preferences.liveUrlOverride(),
+                    experimentalEnabled = experimental,
                     errorMessage = null,
                     hung = false,
                     clockMessage = null,
@@ -110,6 +153,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                     totalMb = null,
                     recording = false,
                     currentRecordingName = null,
+                    status = null,
+                    screen = AppScreen.LIBRARY,
+                    busyAction = null,
+                    feedback = null,
                     clipsByFolder = emptyMap(),
                     loadingFolders = emptySet(),
                     folderErrors = emptyMap(),
@@ -124,7 +171,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 val client = CameraClient(
                     baseUrl = baseUrl,
                     engine = ktorEngine(okHttp),
-                    config = CameraClientConfig(micReapplyDelayMillis = 0),
+                    config = CameraClientConfig(
+                        micReapplyDelayMillis = 0,
+                        allowExperimental = experimental,
+                    ),
                 )
 
                 try {
@@ -156,6 +206,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                             } else {
                                 null
                             },
+                            status = status,
                             clockMessage = clockMessage(clock),
                         )
                     }
@@ -197,6 +248,10 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 errorMessage = null,
                 hung = false,
                 clockMessage = null,
+                status = null,
+                screen = AppScreen.LIBRARY,
+                busyAction = null,
+                feedback = null,
                 clipsByFolder = emptyMap(),
                 loadingFolders = emptySet(),
                 folderErrors = emptyMap(),
@@ -204,6 +259,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 openClip = null,
             )
         }
+    }
+
+    fun openScreen(screen: AppScreen) {
+        _state.update { it.copy(screen = screen) }
+    }
+
+    fun backToLibrary() {
+        _state.update { it.copy(screen = AppScreen.LIBRARY) }
     }
 
     fun openClip(clip: Clip) {
@@ -219,10 +282,20 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /** Debug builds only; ignored by [CameraPreferences] in release. */
-    fun useBaseUrl(raw: String?) {
+    fun useBaseUrl(raw: String?, liveRaw: String? = null) {
         container.preferences.setBaseUrl(raw)
+        container.preferences.setLiveUrlOverride(liveRaw)
         connectJob?.cancel()
         connect()
+    }
+
+    /** Debug-only override; otherwise the shared `CameraClient.liveUrl()` camera address. */
+    fun liveHandle(): LiveHandle? {
+        val active = session ?: return null
+        return LiveHandle(
+            url = container.preferences.liveUrlOverride() ?: active.client.liveUrl(LiveStream.AV2),
+            socketFactory = active.lease.network?.socketFactory,
+        )
     }
 
     fun selectFolder(folder: Folder) {
@@ -249,6 +322,184 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             loadFolder(_state.value.folder, force = true)
         }
     }
+
+    // ---------------------------------------------------------------------
+    // M5 — camera controls
+    // ---------------------------------------------------------------------
+
+    fun toggleMicrophone() {
+        runAction(CameraAction.MIC) { active ->
+            val currentlyOn = _state.value.microphoneOn
+            val result = CameraControls(active.client).microphone(!currentlyOn)
+            readStatus(active)
+            describe(result, if (currentlyOn) "Microphone muted." else "Microphone on.")
+        }
+    }
+
+    fun captureSnapshot() {
+        runAction(CameraAction.SNAPSHOT) { active ->
+            val result = CameraControls(active.client).snapshot()
+            if (result is WriteResult.Applied) {
+                loadFolder(Folder.PHOTO, force = true)
+            }
+            describe(result, "Snapshot saved to Photos.")
+        }
+    }
+
+    fun lockCurrentClip() {
+        runAction(CameraAction.LOCK) { active ->
+            val known = _state.value.clipsByFolder[Folder.LOCK]?.map { it.path }?.toSet()
+                ?: runCatching {
+                    active.client.list(Folder.LOCK).map { it.path }.toSet()
+                }.getOrDefault(emptySet())
+
+            val outcome = CameraControls(active.client).lockCurrentClip(known)
+            if (outcome.applied) {
+                _state.update {
+                    it.copy(clipsByFolder = it.clipsByFolder + (Folder.LOCK to outcome.clips))
+                }
+                loadFolder(Folder.DCIM, force = true)
+                if (!outcome.found) loadFolder(Folder.LOCK, force = true)
+            }
+            lockMessage(outcome)
+        }
+    }
+
+    fun toggleRecording() {
+        runAction(CameraAction.RECORD) { active ->
+            val result = CameraControls(active.client).toggleRecording()
+            val status = readStatus(active)
+            if (result is WriteResult.Applied) {
+                loadFolder(Folder.DCIM, force = true)
+            }
+            if (result is WriteResult.Applied && status != null) {
+                ActionResult(if (status.recording) "Recording started." else "Recording stopped.")
+            } else {
+                describe(result, "Recording toggled.")
+            }
+        }
+    }
+
+    fun syncClockNow() {
+        runAction(CameraAction.SYNC_CLOCK) { active ->
+            val outcome = ClockSync(active.client).sync(_state.value.status?.cameraTime)
+            readStatus(active)
+            _state.update { it.copy(clockMessage = clockMessage(outcome)) }
+            if (outcome.applied) {
+                ActionResult("Camera clock synced.")
+            } else {
+                ActionResult(clockMessage(outcome), error = true)
+            }
+        }
+    }
+
+    /**
+     * Refresh the status shown on the controls screen. Quiet by default so a poll failure never
+     * replaces an action result with a network error banner.
+     */
+    fun refreshCameraStatus() {
+        if (statusRefreshInFlight || _state.value.busyAction != null) return
+        val active = session ?: return
+        statusRefreshInFlight = true
+        viewModelScope.launch {
+            try {
+                refreshStatusQuietly(active)
+            } finally {
+                statusRefreshInFlight = false
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // M6 — settings
+    // ---------------------------------------------------------------------
+
+    fun setExperimentalEnabled(enabled: Boolean) {
+        container.preferences.setExperimentalEnabled(enabled)
+        session?.client?.setExperimentalAllowed(enabled)
+        _state.update { it.copy(experimentalEnabled = enabled) }
+    }
+
+    fun applySetting(setting: Setting, value: String) {
+        val level = SettingsCatalog.levelOf(setting.name)
+        if (level == SafetyLevel.FORBIDDEN) {
+            _state.update {
+                it.copy(feedback = ActionFeedback("This setting is blocked for safety.", true))
+            }
+            return
+        }
+        if (level == SafetyLevel.EXPERIMENTAL && !_state.value.experimentalEnabled) {
+            _state.update {
+                it.copy(
+                    feedback = ActionFeedback("Enable experimental settings first.", true),
+                )
+            }
+            return
+        }
+
+        runAction(CameraAction.SETTING) { active ->
+            if (level == SafetyLevel.NEEDS_STANDBY) {
+                val outcome = CameraSettings(active.client).setNeedsStandby(setting, value)
+                standbyMessage(active, setting, value, outcome)
+            } else {
+                val result = active.client.setSetting(setting, value)
+                readStatus(active)
+                if (result is WriteResult.Applied) {
+                    reloadAfterDestructiveChange(active, setting)
+                }
+                describe(result, "${setting.name} set to $value.")
+            }
+        }
+    }
+
+    /** Typed confirmation happens in the UI; this is the actual SD format flow. */
+    fun formatSdCard() {
+        applySetting(SettingsCatalog.SD0, "format")
+    }
+
+    /** Typed confirmation happens in the UI; this is the actual factory reset flow. */
+    fun factoryReset() {
+        applySetting(SettingsCatalog.FACTORY_RESET, "Camera")
+    }
+
+    /**
+     * Queue every SOS and LOCK clip for download. The settings screen offers this before a
+     * destructive action; downloads keep running in WorkManager even if the user stays here.
+     */
+    fun downloadArchive() {
+        runAction(CameraAction.DOWNLOAD_ARCHIVE) { active ->
+            var queued = 0
+            val updated = mutableMapOf<Folder, List<Clip>>()
+            for (folder in listOf(Folder.SOS, Folder.LOCK)) {
+                val clips = try {
+                    active.client.list(folder)
+                } catch (_: Exception) {
+                    _state.value.clipsByFolder[folder].orEmpty()
+                }
+                updated[folder] = clips
+                clips.forEach { clip ->
+                    val alreadySaved =
+                        _state.value.downloads[clip.path]?.phase == DownloadPhase.SAVED
+                    if (!alreadySaved) {
+                        container.downloads.enqueue(clip, active.baseUrl)
+                        queued++
+                    }
+                }
+            }
+            _state.update { it.copy(clipsByFolder = it.clipsByFolder + updated) }
+            ActionResult(
+                if (queued == 0) {
+                    "No SOS or LOCK clips to download."
+                } else {
+                    "Queued $queued SOS/LOCK ${if (queued == 1) "clip" else "clips"} for download."
+                },
+            )
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Library helpers
+    // ---------------------------------------------------------------------
 
     /** Called when a grid item becomes visible; the cache limits parallel range requests. */
     fun ensureThumbnail(clip: Clip) {
@@ -306,6 +557,85 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         super.onCleared()
     }
 
+    // ---------------------------------------------------------------------
+    // Internals
+    // ---------------------------------------------------------------------
+
+    /** Run one camera operation with a single busy flag and one readable result banner. */
+    private fun runAction(action: CameraAction, block: suspend (CameraSession) -> ActionResult) {
+        if (_state.value.busyAction != null) return
+        val active = session
+        if (active == null) {
+            _state.update {
+                it.copy(feedback = ActionFeedback("Not connected to the camera.", true))
+            }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update { it.copy(busyAction = action, feedback = null) }
+            var outcome: ActionResult? = null
+            try {
+                outcome = block(active)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (failure: Throwable) {
+                outcome = ActionResult(failure.friendlyCameraMessage(active.baseUrl), error = true)
+                if (failure is CameraHungException) {
+                    _state.update { it.copy(hung = true) }
+                }
+            } finally {
+                val hung = active.client.isHung || _state.value.hung
+                _state.update {
+                    it.copy(
+                        busyAction = null,
+                        hung = hung,
+                        feedback = outcome?.let { result ->
+                            ActionFeedback(result.message, result.error || hung)
+                        } ?: it.feedback,
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun readStatus(active: CameraSession): CameraStatus? =
+        try {
+            active.client.status().also(::applyStatus)
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            null
+        }
+
+    private fun applyStatus(status: CameraStatus) {
+        _state.update {
+            it.copy(
+                status = status,
+                firmware = status.firmware ?: it.firmware,
+                sdStatus = status.sdStatus ?: it.sdStatus,
+                freeMb = status.freeMb ?: it.freeMb,
+                totalMb = status.totalMb ?: it.totalMb,
+                recording = status.recording,
+                currentRecordingName = if (status.recording) {
+                    currentRecordingName(status)
+                } else {
+                    null
+                },
+            )
+        }
+    }
+
+    private suspend fun refreshStatusQuietly(activeSession: CameraSession) {
+        try {
+            applyStatus(activeSession.client.status())
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Throwable) {
+            // A polling failure must not replace an action result with a network error.
+        }
+    }
+
     private suspend fun loadFolder(folder: Folder, force: Boolean) {
         val activeSession = session ?: return
         if (!force && _state.value.clipsByFolder.containsKey(folder)) return
@@ -340,31 +670,82 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private suspend fun reloadAfterDestructiveChange(active: CameraSession, setting: Setting) {
+        if (setting.name != SettingsCatalog.SD0.name &&
+            setting.name != SettingsCatalog.FACTORY_RESET.name
+        ) {
+            return
+        }
+        _state.update { it.copy(clipsByFolder = emptyMap(), thumbnails = emptyMap()) }
+        for (folder in Folder.entries) {
+            loadFolder(folder, force = true)
+        }
+        refreshStatusQuietly(active)
+    }
+
+    private suspend fun standbyMessage(
+        active: CameraSession,
+        setting: Setting,
+        value: String,
+        outcome: StandbySettingOutcome,
+    ): ActionResult {
+        val statusAfter = outcome.statusAfter
+        if (statusAfter != null) applyStatus(statusAfter) else readStatus(active)
+
+        val applied = outcome.result is WriteResult.Applied
+        val base = when (val result = outcome.result) {
+            is WriteResult.Applied -> ActionResult("${setting.name} set to $value.")
+            else -> describe(result, "${setting.name} set to $value.")
+        }
+        val notes = buildList {
+            if (outcome.verified == false) {
+                add("The SD card did not report READY; check it before recording again.")
+            }
+            if (outcome.recordingLeftStopped) {
+                add("Recording was not restarted — start it again from Camera.")
+            }
+        }
+        if (applied) {
+            reloadAfterDestructiveChange(active, setting)
+        }
+        val needsAttention = !applied || outcome.verified == false || outcome.recordingLeftStopped
+        return ActionResult(
+            message = (listOf(base.message) + notes).joinToString(" "),
+            error = base.error || needsAttention,
+        )
+    }
+
+    private fun lockMessage(outcome: LockOutcome): ActionResult = when {
+        !outcome.applied -> describe(outcome.write, "Clip locked.")
+        outcome.found -> {
+            val name = outcome.newPaths.first().substringAfterLast('/')
+            ActionResult("Locked $name.")
+        }
+
+        else -> ActionResult("Lock sent. LOCK has not listed the clip yet; try Refresh in a moment.")
+    }
+
+    private fun describe(result: WriteResult<*>, success: String): ActionResult = when (result) {
+        is WriteResult.Applied -> ActionResult(success)
+        is WriteResult.Rejected -> ActionResult(
+            "Camera refused: ${result.detail} (${result.result.code})",
+            error = true,
+        )
+
+        is WriteResult.Refused -> ActionResult(result.reason, error = true)
+        is WriteResult.Hung -> ActionResult(
+            "The camera stopped responding. Restart the car to reset it.",
+            error = true,
+        )
+
+        is WriteResult.Failed -> ActionResult(result.reason, error = true)
+    }
+
     private fun observeDownloads() {
         viewModelScope.launch {
             container.downloadRepository.observe().collect { downloads ->
                 _state.update { it.copy(downloads = downloads) }
             }
-        }
-    }
-
-    private suspend fun refreshStatusQuietly(activeSession: CameraSession) {
-        try {
-            val status = activeSession.client.status()
-            _state.update {
-                it.copy(
-                    recording = status.recording,
-                    currentRecordingName = if (status.recording) {
-                        currentRecordingName(status)
-                    } else {
-                        null
-                    },
-                )
-            }
-        } catch (cancellation: CancellationException) {
-            throw cancellation
-        } catch (_: Throwable) {
-            // The download request will show the network error if the camera is unreachable.
         }
     }
 
