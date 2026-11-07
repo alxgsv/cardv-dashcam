@@ -4,7 +4,7 @@ Open-source **Android, iOS and macOS** app for the **Geely Atlas / Atlas Pro fac
 **AIT / MStar "CarDV" Wi-Fi dashcams**: browse, play and download recordings, live view, snapshots, lock clips,
 clock sync and settings — no cloud, no account.
 
-> Status: protocol fully reverse-engineered, repository scaffolding in place (milestone M0), apps in
+> Status: protocol fully reverse-engineered, shared core implemented (milestone M1), apps in
 > development. See the [plan](docs/PLAN.md).
 
 ## Is my dashcam supported?
@@ -47,11 +47,19 @@ open appleApp/CardvDashcam.xcodeproj
 CI (`.github/workflows/ci.yml`) runs the shared tests, builds and lints the Android app, and builds both
 Apple destinations on every push and pull request.
 
+No camera at hand? The shared tests start the [fake camera](tools/fake-camera/README.md) themselves;
+you can also run it for the apps:
+
+```sh
+python3 tools/fake-camera/fake_camera.py --port 8080
+```
+
 ## Documentation
 
 - [docs/PROTOCOL.md](docs/PROTOCOL.md) — the camera's HTTP/RTSP protocol, with every quirk we found
 - [docs/PLAN.md](docs/PLAN.md) — architecture (Kotlin Multiplatform + native UI) and milestones
 - [tools/probe/](tools/probe/README.md) — Python scripts to probe a camera
+- [tools/fake-camera/](tools/fake-camera/README.md) — fake camera for development and tests
 
 ## Disclaimer
 
