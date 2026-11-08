@@ -52,11 +52,11 @@ that configuration.
 | Android app | Android emulator, fake camera | Fake camera | Connect/network binding, library, playback with seek, downloads, live view, controls, settings |
 | iOS app | iOS Simulator, fake camera | Fake camera | Connect, library, playback, downloads, camera controls, settings |
 | macOS app | macOS (arm64), fake camera | Fake camera | Connect, library, playback, downloads, camera controls, settings |
-| Real-car app install | Android / iPhone / Mac | **Awaiting release sign-off** | Run the manual checklist on the actual car; report through the camera report template |
+| Real-car app install | Installed app (owner report) | Geely Atlas / Atlas Pro baseline, `MS;ms8339DEW;…;GEELY_Z3152_V1.2` | Connect, lists, playback, downloads, live view, controls and settings reported working |
 
-No installed-app run on a real car is recorded in this repository yet. Before publishing 1.0.0, run the
-manual checklist from [PLAN.md §8](PLAN.md) on the baseline car and add the result here. Apple live view is
-not part of 1.0.0 (M4 is a separate branch), so the live row for Apple is intentionally absent.
+The owner reported a successful manual run on the baseline car. The exact phone platform was not
+recorded; add a more specific row through the camera report template when available. Apple live view is
+merged on `master` and will appear in the next release after `v1.0.0`.
 
 ## Is my camera supported?
 
