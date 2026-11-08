@@ -24,10 +24,12 @@ mkdir -p "$ICONSET"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-# The launcher foreground has a large transparent safe-zone border. Crop it and fill more of the
-# iOS icon, otherwise the camera looks tiny inside the home-screen square.
+# The launcher foreground has a transparent safe-zone border plus a soft alpha glow. Trim to the
+# opaque camera body (alpha > 50%) rather than the full alpha bounding box, then fill the iOS icon.
+# Using the glow's box makes the body look small and off-centre.
+BODY_CROP="$(magick "$SOURCE" -alpha extract -threshold 50% -format '%@' info:)"
 magick -size 1024x1024 "xc:$BACKGROUND" \
-    \( "$SOURCE" -trim +repage -resize 942x942 \) -gravity center -compose over -composite \
+    \( "$SOURCE" -crop "$BODY_CROP" +repage -resize 942x942 \) -gravity center -compose over -composite \
     -strip "$TMP/ios-1024.png"
 magick "$TMP/ios-1024.png" -resize 824x824 \
     \( -size 824x824 xc:black -fill white -draw 'roundrectangle 0,0 823,823 185,185' \) \
