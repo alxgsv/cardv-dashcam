@@ -1,9 +1,43 @@
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+}
+
+// Release signing material never lives in the repository. Put the four values in the
+// gitignored local.properties, or set the CARDV_RELEASE_* environment variables (CI does
+// the latter). Without them, assembleRelease still works but produces an unsigned APK.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.isFile) file.inputStream().use { load(it) }
+}
+
+fun releaseValue(localKey: String, environmentKey: String): String? =
+    System.getenv(environmentKey)?.takeIf { it.isNotBlank() }
+        ?: localProperties.getProperty(localKey)?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = releaseValue("cardv.release.storeFile", "CARDV_RELEASE_STORE_FILE")
+val releaseStorePassword = releaseValue("cardv.release.storePassword", "CARDV_RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = releaseValue("cardv.release.keyAlias", "CARDV_RELEASE_KEY_ALIAS")
+val releaseKeyPassword = releaseValue("cardv.release.keyPassword", "CARDV_RELEASE_KEY_PASSWORD")
+val releaseSigningReady = listOf(
+    releaseStoreFile,
+    releaseStorePassword,
+    releaseKeyAlias,
+    releaseKeyPassword,
+).all { it != null }
+
+tasks.register("requireReleaseSigning") {
+    doLast {
+        check(releaseSigningReady) {
+            "Release signing is not configured. Set CARDV_RELEASE_STORE_FILE, " +
+                "CARDV_RELEASE_STORE_PASSWORD, CARDV_RELEASE_KEY_ALIAS and " +
+                "CARDV_RELEASE_KEY_PASSWORD (or the cardv.release.* values in local.properties)."
+        }
+    }
 }
 
 android {
@@ -14,8 +48,19 @@ android {
         applicationId = "com.cardv.dashcam"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = rootProject.extra["cardvAndroidVersionCode"] as Int
+        versionName = rootProject.extra["cardvVersionName"] as String
+    }
+
+    signingConfigs {
+        if (releaseSigningReady) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
     }
 
     buildFeatures {
@@ -25,7 +70,15 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
+            if (releaseSigningReady) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
     }
 

@@ -1,0 +1,16 @@
+CarDV Dashcam is an open-source Android app for Wi-Fi dashcams running the AIT / MStar "CarDV" firmware, including the factory DVR fitted to the Geely Atlas / Atlas Pro, Belgee X70 and related cars.
+
+The app talks only to the camera on its local Wi-Fi network. There is no account, no cloud, no analytics and no tracking.
+
+Features:
+- Browse loop, SOS, locked and photo folders with thumbnails
+- Play clips directly from the camera with seeking
+- Resumable downloads, saved to Movies/CarDV and Pictures/CarDV
+- Live view over RTSP
+- Mic mute, snapshot, lock the current clip and start/stop recording
+- Camera status, SD card space, firmware and clock sync
+- Safe settings, with an explicit opt-in for experimental settings and confirmation for destructive actions
+
+Requirements: the camera must be reachable at 192.168.42.1 and use the CarDV folder layout (DCIM, SOS, LOCK, Photo). Firmware that uses a different address or folder layout is not supported yet. See the project's COMPATIBILITY.md and camera report template.
+
+Licence: MIT. Source code and probe tools: https://github.com/alxgsv/cardv-dashcam

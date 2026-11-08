@@ -3,4 +3,13 @@
 // `Signing.local.xcconfig` is not in the repository: copy
 // `Signing.local.xcconfig.example` to `Signing.local.xcconfig` and put your team ID in it.
 // Simulator builds work without a team; an iPhone needs one.
+
+// The root version.xcconfig is the single source of truth for MARKETING_VERSION and
+// CURRENT_PROJECT_VERSION across Android, the shared BuildInfo and Xcode.
+#include "../version.xcconfig"
+
+// Local/ad-hoc macOS builds sign to run locally. Override this for Developer ID releases:
+//   xcodebuild ... CARDV_MACOS_SIGN_IDENTITY="Developer ID Application: Name (TEAMID)"
+CARDV_MACOS_SIGN_IDENTITY = -
+
 #include? "Signing.local.xcconfig"

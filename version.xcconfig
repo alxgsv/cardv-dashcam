@@ -1,0 +1,13 @@
+// Single source of truth for the app version.
+//
+// Xcode reads this file through appleApp/Signing.xcconfig, Gradle reads it for the
+// Android versionName/versionCode and for the shared BuildInfo.VERSION value.
+// Release tag = vMARKETING_VERSION.
+//
+// Bump procedure (see docs/RELEASE.md):
+//   1. MARKETING_VERSION          semantic version shown in the apps and stores.
+//   2. CURRENT_PROJECT_VERSION    monotonic App Store / TestFlight build number.
+//   3. ANDROID_VERSION_CODE       monotonic integer; 1.0.0 uses 10000.
+MARKETING_VERSION = 1.0.0
+CURRENT_PROJECT_VERSION = 1
+ANDROID_VERSION_CODE = 10000
