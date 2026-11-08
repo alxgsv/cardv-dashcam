@@ -75,7 +75,3 @@ with open(os.path.join(iconset, "Contents.json"), "w") as f:
     f.write("\n")
 print(f"wrote {len(entries)} icon images to {iconset}")
 PY
-
-mkdir -p fastlane/metadata/android/en-US/images
-magick "$ICONSET/AppIcon-ios-1024.png" -resize 512x512 -strip \
-    fastlane/metadata/android/en-US/images/icon.png

@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit
 class CameraNetworkException(message: String, cause: Throwable? = null) : IOException(message, cause)
 
 /**
- * Explicit no-internet Wi-Fi handling (docs/PLAN.md §5).
+ * Explicit no-internet Wi-Fi handling (docs/DESIGN.md §5).
  *
  * The dashcam has no internet route, so Android would otherwise prefer mobile data. For the real
  * camera address this class:

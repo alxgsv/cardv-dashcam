@@ -38,7 +38,7 @@ data class StandbySettingOutcome(
 /**
  * The M6 settings flow for settings the camera refuses while recording (`NEEDS_STANDBY`).
  *
- * It follows docs/PLAN.md §4:
+ * It follows docs/DESIGN.md §4:
  * 1. read the current state and stop recording when needed;
  * 2. confirm that the camera really is in Standby (`709` is otherwise likely);
  * 3. send the setting through [CameraClient.setSetting], so the catalog still validates it;

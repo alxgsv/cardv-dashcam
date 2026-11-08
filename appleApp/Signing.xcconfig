@@ -8,8 +8,7 @@
 // CURRENT_PROJECT_VERSION across Android, the shared BuildInfo and Xcode.
 #include "../version.xcconfig"
 
-// Local/ad-hoc macOS builds sign to run locally. Override this for Developer ID releases:
-//   xcodebuild ... CARDV_MACOS_SIGN_IDENTITY="Developer ID Application: Name (TEAMID)"
+// macOS builds sign ad-hoc so the app can run locally.
 CARDV_MACOS_SIGN_IDENTITY = -
 
 #include? "Signing.local.xcconfig"

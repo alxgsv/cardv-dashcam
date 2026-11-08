@@ -1,5 +1,0 @@
-First release.
-
-Android: browse, play, resumable downloads, live view, snapshots, clip lock, record control, clock sync and safe settings.
-
-Apple (iOS/macOS) builds are distributed separately; Apple live view is not part of this release.

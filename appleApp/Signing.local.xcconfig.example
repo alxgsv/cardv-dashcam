@@ -5,6 +5,3 @@
 // Free Apple IDs work for a quick test but expire after 7 days; a paid Apple Developer
 // Program membership signs for one year.
 DEVELOPMENT_TEAM = YOUR_TEAM_ID
-
-// Optional: for a local Developer ID macOS release (notarization), uncomment and fill in.
-// CARDV_MACOS_SIGN_IDENTITY = Developer ID Application: Your Name (YOUR_TEAM_ID)

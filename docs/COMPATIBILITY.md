@@ -55,8 +55,7 @@ that configuration.
 | Real-car app install | Installed app (owner report) | Geely Atlas / Atlas Pro baseline, `MS;ms8339DEW;…;GEELY_Z3152_V1.2` | Connect, lists, playback, downloads, live view, controls and settings reported working |
 
 The owner reported a successful manual run on the baseline car. The exact phone platform was not
-recorded; add a more specific row through the camera report template when available. Apple live view is
-merged on `master` and will appear in the next release after `v1.0.0`.
+recorded; add a more specific row through the camera report template when available.
 
 ## Is my camera supported?
 
@@ -77,4 +76,4 @@ sanitized output.
 The app assumes the baseline IP, paths and result codes. Firmware that differs in IP, folder names, RTSP
 path or CGI parameters is not supported until a compatible mode exists. Rear camera, firmware upload
 (`action=flash`) and Wi-Fi name/password changes are explicit non-goals. See
-[PLAN.md §9](PLAN.md) for the risk list and mitigations.
+[DESIGN.md §8](DESIGN.md) for the risk list and mitigations.
