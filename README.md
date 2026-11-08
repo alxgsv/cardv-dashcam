@@ -1,22 +1,39 @@
 # CarDV Dashcam
 
-Open-source **Android, iOS and macOS** app for the **Geely Atlas / Atlas Pro factory dashcam (DVR)** and other
-**AIT / MStar "CarDV" Wi-Fi dashcams**: browse, play and download recordings, live view, snapshots, lock clips,
-clock sync and settings — no cloud, no account.
+Open-source **Android, iOS and macOS** app for Wi-Fi dashcams built on the **AIT / MStar "CarDV"** firmware —
+the **Geely Atlas / Atlas Pro**, **Belgee X70** and other cars fitted with the same camera: browse, play and
+download recordings, live view, snapshots, lock clips, clock sync and settings — no cloud, no account.
 
 > Status: protocol fully reverse-engineered, shared core (M1) and Android M2–M6 implemented
 > (library, playback, downloads, live view, controls and settings); Apple apps in development.
 > See the [plan](docs/PLAN.md).
 
-## Is my dashcam supported?
+## Supported cars and cameras
+
+The app talks to the dashcam, not to the car: any DVR running the same AIT / MStar **CarDV** firmware works,
+whichever badge it was fitted under. Compatibility depends on the DVR fitted to that particular car, not 
+on the model name.
+
+| Car | Chinese name |
+| --- | --- |
+| Geely Atlas / Atlas Pro, Belgee X70 | 博越 / 博越Pro |
+| Geely Atlas 2024 (FX11) / Starray | 博越L |
+| Geely Cityray | 博越COOL |
+| Geely Coolray | 缤越 |
+| Geely Preface | 星瑞 |
+| Geely Galaxy L7 | 银河L7 |
+| Ford Mustang Mach-E (China) | 福特电马 |
+
+### Is my camera supported?
 
 Your camera probably works if:
 - its Wi-Fi gives you an address like `192.168.42.x` and the camera is at `192.168.42.1`, and
 - `http://192.168.42.1/cgi-bin/Config.cgi?action=get&property=Camera.Menu.FWversion` returns something like
   `0 OK Camera.Menu.FWversion=MS;ms8339DEW;…;GEELY_Z3152_V1.2;…`
 
-Verified: Geely Atlas / Atlas Pro factory DVR, firmware `GEELY_Z3152_V1.2` (MStar MSC8339).
-Got a different camera? Run the [probe tools](tools/probe/README.md) and open an issue with the report.
+Got a different camera or car? Run the [probe tools](tools/probe/README.md) and open an issue with the report.
+Standalone dashcams on the same firmware family (for example MStar MSC8339 models that take an `SD_CarDV.bin`
+update) may also work, but often use a different IP or `/SD/...` layout and need configuration first.
 
 ## Features (planned v1)
 
