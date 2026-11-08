@@ -35,6 +35,7 @@ xcodebuild -project appleApp/CardvDashcam.xcodeproj \
     -destination "platform=iOS,id=$DEVICE" \
     -derivedDataPath "$DERIVED" \
     -allowProvisioningUpdates \
+    -allowProvisioningDeviceRegistration \
     build
 
 APP="$DERIVED/Build/Products/Release-iphoneos/CardvDashcam.app"

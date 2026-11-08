@@ -203,9 +203,10 @@ tools/apple/install-device.sh <device-udid>
 ```
 
 The script builds **Release** (always `192.168.42.1`, no test override), signs with automatic
-provisioning, installs and launches. A development profile is valid for about one year: when it
-expires the app stops launching, and re-running the script renews it. The bundle id stays the same,
-so downloads and settings survive the reinstall.
+provisioning, registers a new device in the developer account on first use, installs and launches.
+A development profile is valid for about one year: when it expires the app stops launching, and
+re-running the script renews it. The bundle id stays the same, so downloads and settings survive the
+reinstall.
 
 If Xcode reports `PLA Update available`, accept the current Program License Agreement in your
 developer account and try again.
