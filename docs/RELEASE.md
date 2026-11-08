@@ -1,5 +1,10 @@
 # Release guide
 
+> **Current distribution decision:** Android APK from GitHub Releases is the only published channel.
+> iOS and macOS are built from source by users (Xcode over the cable for iOS). TestFlight, a notarized
+> macOS DMG, F-Droid and Google Play are intentionally not part of the current plan; the sections
+> below remain as optional paths if that changes.
+
 Everything here is prepared so a release can be built and published from the repository. Nothing is
 published automatically by a pull request, a branch push or a fork. Publishing requires a `v*` tag or a
 manual workflow dispatch and the account-side secrets listed below.
@@ -8,16 +13,15 @@ manual workflow dispatch and the account-side secrets listed below.
 
 | Channel | Build path | Ready in the repository | Account-side work still needed |
 |---|---|---|---|
-| GitHub Releases — signed Android APK + AAB | `.github/workflows/release-android.yml` | Yes | Add the four Android signing secrets to the repository |
-| F-Droid | `fastlane/metadata/android/` description/icon/changelog | Metadata prepared; no `fdroiddata` recipe or anti-feature claims invented | Submit a merge request to [fdroiddata](https://gitlab.com/fdroid/fdroiddata) after the first tagged build |
-| TestFlight / unlisted App Store — iOS | `.github/workflows/release-apple.yml`, `tools/apple/archive-ios.sh` | Archive, export and upload checklist yes; workflow is manual-only until Apple secrets exist | Developer Program, App Store Connect record, distribution certificate + App Store profile secrets, upload through Xcode Organizer or Transporter, unlisted distribution enabled |
-| Notarized macOS DMG | `.github/workflows/release-apple.yml`, `tools/apple/notarize-macos.sh` | Yes; workflow is manual-only until Apple secrets exist | Developer ID Application certificate and notary credentials |
-| Apple live view | — | **No:** M4 is a separate branch; 1.0.0 does not include it | Merge M4 and update the release notes first |
-| Google Play, public App Store listing | — | No store listing is prepared | Later, after unlisted/TestFlight feedback |
+| GitHub Releases — signed Android APK + AAB | `.github/workflows/release-android.yml` | Yes; 1.0.0 published | Signing secrets configured; rotate only if the keystore changes |
+| F-Droid | `fastlane/metadata/android/` description/icon/changelog | **Not planned for now**; metadata remains available | None unless this changes |
+| TestFlight / unlisted App Store — iOS | `.github/workflows/release-apple.yml`, `tools/apple/archive-ios.sh` | **Not planned for now**; optional path documented | Developer Program, App Store Connect record, distribution certificate + profile |
+| Notarized macOS DMG | `.github/workflows/release-apple.yml`, `tools/apple/notarize-macos.sh` | **Not planned for now**; optional path documented | Developer ID Application certificate and notary credentials |
+| Apple live view | — | **Merged on `master`**; `v1.0.0` predates it | Ship it in the next release |
+| Google Play, public App Store listing | — | Not planned | None |
 
-The Android release and the notarized macOS DMG can be produced entirely from this repository once the
-secrets exist. The iOS archive can be produced and exported once the certificate and profile exist; the
-upload itself is intentionally a manual step until the App Store Connect app record is created.
+The Android release can be produced entirely from this repository once the secrets exist. iOS and
+macOS users build from source; the Apple archive/notarization sections below are optional.
 
 ## One version source
 
@@ -209,8 +213,8 @@ Release.
 - [ ] For an unlisted App Store release, set the distribution method to **Unlisted App** in App Store
       Connect after the app is approved. The App Store link is then available only to people who have it;
       it is not searchable. TestFlight remains the pre-release route.
-- [ ] Do not claim Apple live view in the listing or notes until M4 is merged. 1.0.0 has library,
-      playback, downloads, camera controls and settings on Apple; live view is Android-only.
+- [ ] `v1.0.0` notes must not claim Apple live view; it predates M4. Releases after `v1.0.0` can list
+      Apple live view, which is merged on `master`.
 
 ## Apple — macOS notarization
 
@@ -285,7 +289,7 @@ Before tagging:
 - [ ] `xcodebuild ... -configuration Release` builds for the iOS Simulator and macOS.
 - [ ] `tools/apple/archive-ios.sh` succeeds for the device archive.
 - [ ] `docs/COMPATIBILITY.md` reflects the cars/firmware tested for this release.
-- [ ] Release notes do not claim Apple live view unless M4 is merged.
+- [ ] Release notes for `v1.0.0` do not claim Apple live view; later releases can include it.
 - [ ] Keystore, `.p12`, `.mobileprovision`, `.p8` and passwords are outside the repository and not in
       `git status`.
 
