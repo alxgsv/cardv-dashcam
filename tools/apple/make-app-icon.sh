@@ -24,8 +24,10 @@ mkdir -p "$ICONSET"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
+# The launcher foreground has a large transparent safe-zone border. Crop it and fill more of the
+# iOS icon, otherwise the camera looks tiny inside the home-screen square.
 magick -size 1024x1024 "xc:$BACKGROUND" \
-    \( "$SOURCE" -resize 1024x1024 \) -compose over -composite \
+    \( "$SOURCE" -trim +repage -resize 820x820 \) -gravity center -compose over -composite \
     -strip "$TMP/ios-1024.png"
 magick "$TMP/ios-1024.png" -resize 824x824 \
     \( -size 824x824 xc:black -fill white -draw 'roundrectangle 0,0 823,823 185,185' \) \
@@ -71,3 +73,7 @@ with open(os.path.join(iconset, "Contents.json"), "w") as f:
     f.write("\n")
 print(f"wrote {len(entries)} icon images to {iconset}")
 PY
+
+mkdir -p fastlane/metadata/android/en-US/images
+magick "$ICONSET/AppIcon-ios-1024.png" -resize 512x512 -strip \
+    fastlane/metadata/android/en-US/images/icon.png

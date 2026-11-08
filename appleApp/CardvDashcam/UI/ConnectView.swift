@@ -15,72 +15,74 @@ struct ConnectView: View {
 
     var body: some View {
         let theme = CarDVTheme.of(colorScheme)
-        ScrollView {
-            VStack(spacing: 0) {
-                header(theme)
+        GeometryReader { proxy in
+            ScrollView {
+                VStack(spacing: 0) {
+                    header(theme)
 
-                Spacer(minLength: 18)
+                    Spacer(minLength: 18)
 
-                hero(theme)
+                    hero(theme)
 
-                Text(wordmark(theme))
-                    .font(.system(size: 40, weight: .black, design: .default))
-                    .tracking(-1.2)
-                    .padding(.top, 6)
+                    Text(wordmark(theme))
+                        .font(.system(size: 40, weight: .black, design: .default))
+                        .tracking(-1.2)
+                        .padding(.top, 6)
 
-                Spacer(minLength: 22)
+                    Spacer(minLength: 22)
 
-                connectionCard(theme)
+                    connectionCard(theme)
 
-                Button {
-                    model.connect()
-                } label: {
-                    HStack(spacing: 10) {
-                        if connecting {
-                            ProgressView()
-                                .controlSize(.small)
-                                .tint(theme.onEmber)
-                        } else {
-                            Image(systemName: failed ? "exclamationmark.triangle.fill" : "wifi")
+                    Button {
+                        model.connect()
+                    } label: {
+                        HStack(spacing: 10) {
+                            if connecting {
+                                ProgressView()
+                                    .controlSize(.small)
+                                    .tint(theme.onEmber)
+                            } else {
+                                Image(systemName: failed ? "exclamationmark.triangle.fill" : "wifi")
+                            }
+                            Text(connecting ? "Connecting…" : (failed ? "Try again" : "Connect to dashcam"))
                         }
-                        Text(connecting ? "Connecting…" : (failed ? "Try again" : "Connect to dashcam"))
+                    }
+                    .buttonStyle(PrimaryButtonStyle(theme: theme, enabled: !connecting))
+                    .disabled(connecting)
+                    .padding(.top, 16)
+
+                    VStack(spacing: 6) {
+                        Text("Power the camera on, join its Wi-Fi, then connect.")
+                            .font(.system(size: 13))
+                            .foregroundStyle(theme.secondaryText)
+                        Text("The camera has no internet. Your phone may warn about that; keep the Wi-Fi joined.")
+                            .font(.system(size: 11))
+                            .foregroundStyle(theme.secondaryText.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.top, 14)
+
+                    HStack(spacing: 8) {
+                        step("01", "Power on", theme)
+                        step("02", "Join Wi-Fi", theme)
+                        step("03", "Connect", theme)
+                    }
+                    .padding(.top, 18)
+
+                    if isDebugBuild && (versionTaps >= 5 || CameraPreferences.baseURLOverride != nil || CameraPreferences.hasEnvironmentBaseURL) {
+                        developerSection(theme)
+                            .padding(.top, 18)
                     }
                 }
-                .buttonStyle(PrimaryButtonStyle(theme: theme, enabled: !connecting))
-                .disabled(connecting)
-                .padding(.top, 16)
-
-                VStack(spacing: 6) {
-                    Text("Power the camera on, join its Wi-Fi, then connect.")
-                        .font(.system(size: 13))
-                        .foregroundStyle(theme.secondaryText)
-                    Text("The camera has no internet. Your phone may warn about that; keep the Wi-Fi joined.")
-                        .font(.system(size: 11))
-                        .foregroundStyle(theme.secondaryText.opacity(0.8))
-                        .multilineTextAlignment(.center)
-                }
-                .padding(.top, 14)
-
-                HStack(spacing: 8) {
-                    step("01", "Power on", theme)
-                    step("02", "Join Wi-Fi", theme)
-                    step("03", "Connect", theme)
-                }
-                .padding(.top, 18)
-
-                if isDebugBuild && (versionTaps >= 5 || CameraPreferences.baseURLOverride != nil || CameraPreferences.hasEnvironmentBaseURL) {
-                    developerSection(theme)
-                        .padding(.top, 18)
-                }
+                .padding(.horizontal, 24)
+                .padding(.vertical, 18)
+                .frame(maxWidth: 560)
+                .frame(maxWidth: .infinity, minHeight: proxy.size.height, alignment: .top)
             }
-            .padding(.horizontal, 24)
-            .padding(.vertical, 18)
-            .frame(maxWidth: 560)
-            .frame(maxWidth: .infinity)
+            #if os(iOS)
+            .scrollDismissesKeyboard(.interactively)
+            #endif
         }
-        #if os(iOS)
-        .scrollDismissesKeyboard(.interactively)
-        #endif
         .onAppear {
             if debugURL.isEmpty {
                 if let override = CameraPreferences.baseURLOverride {
@@ -142,18 +144,12 @@ struct ConnectView: View {
                     )
                 )
                 .frame(width: 236, height: 236)
-            Circle()
-                .strokeBorder(theme.outline.opacity(0.7), lineWidth: 1)
-                .background(Circle().fill(theme.surface))
-                .frame(width: 150, height: 150)
-            Image(systemName: "camera.aperture")
-                .font(.system(size: 58, weight: .light))
-                .foregroundStyle(theme.ember)
-            Circle()
-                .fill(theme.ember)
-                .frame(width: 12, height: 12)
-                .offset(x: 88, y: -88)
-                .shadow(color: theme.ember.opacity(0.6), radius: 8)
+            Image("HeroDashcam")
+                .resizable()
+                .interpolation(.high)
+                .scaledToFit()
+                .frame(width: 218, height: 218)
+                .accessibilityHidden(true)
         }
         .frame(height: 238)
     }
