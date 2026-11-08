@@ -1,0 +1,7 @@
+// Copy this file to Signing.local.xcconfig (gitignored) and set your own team.
+// The team ID is the ten-character identifier in
+// `security find-identity -v -p codesigning`, or in Xcode → Settings → Accounts.
+//
+// Free Apple IDs work for a quick test but expire after 7 days; a paid Apple Developer
+// Program membership signs for one year.
+DEVELOPMENT_TEAM = YOUR_TEAM_ID

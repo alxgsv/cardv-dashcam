@@ -4,8 +4,9 @@ Open-source **Android, iOS and macOS** app for Wi-Fi dashcams built on the **AIT
 the **Geely Atlas / Atlas Pro**, **Belgee X70** and other cars fitted with the same camera: browse, play and
 download recordings, live view, snapshots, lock clips, clock sync and settings — no cloud, no account.
 
-> Status: protocol fully reverse-engineered, shared core (M1) and Android M2–M6 implemented
-> (library, playback, downloads, live view, controls and settings); Apple apps in development.
+> Status: protocol fully reverse-engineered, shared core (M1), Android M2–M6 and Apple M3, M5 and M6
+> implemented (library, playback, downloads, controls and settings). Apple live view (M4) is the
+> remaining milestone.
 > See the [plan](docs/PLAN.md).
 
 ## Supported cars and cameras
@@ -70,7 +71,8 @@ No camera at hand? The shared tests start the [fake camera](tools/fake-camera/RE
 you can also run it for the apps:
 
 ```sh
-python3 tools/fake-camera/fake_camera.py --port 8080
+python3 tools/fake-camera/fake_camera.py --port 8080          # simulator / Mac: 127.0.0.1
+python3 tools/fake-camera/fake_camera.py --host 0.0.0.0       # physical phone on the same Wi-Fi
 ```
 
 Debug builds show a **Debug camera address** field on the connect screen (release builds always use
@@ -115,6 +117,70 @@ cleartext to `192.168.42.1`.
 Debug builds keep the test camera override out of the way: tap the version pill five times on the
 connect screen to reveal **Developer options**. The same card has a debug live RTSP URL for a local
 MediaMTX/ffmpeg test stream.
+
+## Apple apps (iOS and macOS)
+
+One SwiftUI codebase and one Xcode target serve both Apple platforms; only three things are
+per-platform: the shell (`TabView` on iOS, `NavigationSplitView` on macOS), the export destination
+(Photos on iOS, a save panel on macOS) and the `AVPlayerLayer` host view. Everything else is shared
+with the Android app through the Kotlin core:
+
+- **Connect** — health check, clock sync on connect, and a warm connect screen with the same copy as
+  Android. The Local Network prompt is explained before the first request.
+- **Library** — the four folders, day grouping, sorting, thumbnails (video `skip` box and photo
+  JPEGs) and a recording badge for the clip currently being written.
+- **Playback** — `AVPlayer` streams the MP4 directly from the camera, with a custom seek bar,
+  10-second skips and a black immersive player. The clip being recorded is not playable.
+- **Downloads** — resumable `Range` downloads with a `.part` file, progress on the tile, and
+  "Save to Photos" (iOS) or "Save As…" (macOS).
+- **Camera** — status, mic, snapshot, lock, record toggle and clock sync.
+- **Settings** — the shared `SettingsCatalog`, the experimental opt-in, standby settings and the
+  typed-confirmation SD format / factory reset flows, including "Download SOS + LOCK first".
+
+`appleApp/CardvDashcam/Model/AppModel.swift` is the session and screen model;
+`shared/src/appleMain/.../AppleCamera.kt` is the only Swift-facing Kotlin facade. Kotlin suspend
+functions import into Swift as `async throws`, so no SKIE plugin is involved.
+
+Apple live view is still open: `AVPlayer` has no RTSP. The VLCKit-versus-own-client decision is the
+same M4 spike described in [docs/PLAN.md](docs/PLAN.md).
+
+### Installing on an iPhone (one-year signature)
+
+Device builds need a team from the paid Apple Developer Program. The team ID lives in an untracked
+`appleApp/Signing.local.xcconfig`, so the repository stays usable by contributors and CI:
+
+```sh
+cp appleApp/Signing.local.xcconfig.example appleApp/Signing.local.xcconfig
+# ten-character team id from: security find-identity -v -p codesigning
+```
+
+Then connect the iPhone, unlock it and trust the Mac; on iOS 16+ enable **Settings → Privacy &
+Security → Developer Mode**. Press **Run** in Xcode, or use the script:
+
+```sh
+xcrun devicectl list devices
+tools/apple/install-device.sh <device-udid>
+```
+
+The script builds **Release** (always `192.168.42.1`, no test override), signs with automatic
+provisioning, installs and launches. A development profile is valid for about one year: when it
+expires the app stops launching, and re-running the script renews it. The bundle id stays the same,
+so downloads and settings survive the reinstall.
+
+If Xcode reports `PLA Update available`, accept the current Program License Agreement in your
+developer account and try again.
+
+For the simulator or a headless run, a debug build reads `CARDV_BASE_URL` (and `CARDV_LIVE_URL`,
+`CARDV_START_SECTION=library|camera|settings`) from the environment, connects on launch, and shows
+the address under Developer options. `-openFirstClip` and `-openFirstPhoto` launch arguments open a
+clip or snapshot directly for smoke tests:
+
+```sh
+xcodebuild -project appleApp/CardvDashcam.xcodeproj -scheme CardvDashcam \
+  -sdk macosx CODE_SIGNING_ALLOWED=NO build
+CARDV_BASE_URL=http://127.0.0.1:8080 \
+  ~/Library/Developer/Xcode/DerivedData/*/Build/Products/Debug/CardvDashcam.app/Contents/MacOS/CardvDashcam
+```
 
 ## Documentation
 

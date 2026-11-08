@@ -1,0 +1,6 @@
+// Signing settings for device builds.
+//
+// `Signing.local.xcconfig` is not in the repository: copy
+// `Signing.local.xcconfig.example` to `Signing.local.xcconfig` and put your team ID in it.
+// Simulator builds work without a team; an iPhone needs one.
+#include? "Signing.local.xcconfig"

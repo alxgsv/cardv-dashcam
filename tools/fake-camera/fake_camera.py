@@ -33,6 +33,7 @@ import struct
 import sys
 import threading
 import time
+from pathlib import Path
 import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
@@ -44,6 +45,18 @@ HTTP_DATE = "Mon, 01 Jan 2024 00:00:00 GMT"
 # ---------------------------------------------------------------------------
 # Sample media
 # ---------------------------------------------------------------------------
+
+
+MEDIA_DIR = Path(__file__).resolve().parent / "media"
+REAL_VIDEO = MEDIA_DIR / "sample.mp4"
+REAL_PHOTO = MEDIA_DIR / "sample.jpg"
+
+
+def _load_media(path: Path) -> bytes | None:
+    try:
+        return path.read_bytes()
+    except OSError:
+        return None
 
 
 def _box(box_type: bytes, payload: bytes) -> bytes:
@@ -61,6 +74,10 @@ def _make_jpeg() -> bytes:
 
 
 def _make_mp4() -> bytes:
+    fixture = _load_media(REAL_VIDEO)
+    if fixture is not None:
+        return fixture
+
     # ftyp must be 36 bytes so the skip payload starts at 44 and the JPEG at 60.
     brands = b"isom" + b"iso2" + b"avc1" + b"mp41" + b"mp42"
     ftyp = _box(b"ftyp", b"isom" + struct.pack(">I", 0x200) + brands)
@@ -83,7 +100,8 @@ def _make_mp4() -> bytes:
 
 
 def _make_photo() -> bytes:
-    return _make_jpeg()
+    fixture = _load_media(REAL_PHOTO)
+    return fixture if fixture is not None else _make_jpeg()
 
 
 # ---------------------------------------------------------------------------
@@ -138,6 +156,11 @@ class CameraState:
         self.total_mb = 61_000
         self.mp4 = _make_mp4()
         self.photo = _make_photo()
+        # The real fixture is a three-second 640x360 clip; the stub is protocol-only.
+        self.has_real_video = REAL_VIDEO.is_file()
+        self.video_size = len(self.mp4)
+        self.video_duration = 3.0 if self.has_real_video else 300.2
+        self.photo_size = len(self.photo)
 
         self.files: dict[str, dict[str, Clip]] = {
             "DCIM": {},
@@ -154,40 +177,40 @@ class CameraState:
             when = base + dt.timedelta(minutes=5 * i)
             name = f"{when:%Y%m%d_%H%M%S}_{2088 + i:06d}.MP4"
             path = f"/SD/MOVIE/{name}"
-            self.files["DCIM"][path] = Clip(path, when, 5_000_000, 300.2)
+            self.files["DCIM"][path] = Clip(path, when, self.video_size, self.video_duration)
 
         sos_base = dt.datetime(2022, 7, 7, 16, 31, 55)
         for i in range(self.args.sos_files):
             when = sos_base + dt.timedelta(seconds=30 * i)
             name = f"{when:%Y%m%d_%H%M%S}_{i:06d}.MP4"
             path = f"/SD/SOS/{name}"
-            self.files["SOS"][path] = Clip(path, when, 3_000_000, 30.0)
+            self.files["SOS"][path] = Clip(path, when, self.video_size, self.video_duration)
 
         lock_base = dt.datetime(2022, 7, 7, 18, 0, 0)
         for i in range(self.args.lock_files):
             when = lock_base + dt.timedelta(minutes=5 * i)
             name = f"{when:%Y%m%d_%H%M%S}_{2088 + i:06d}.MP4"
             path = f"/SD/LOCK/{name}"
-            self.files["LOCK"][path] = Clip(path, when, 5_000_000, 300.2)
+            self.files["LOCK"][path] = Clip(path, when, self.video_size, self.video_duration)
 
         photo_base = dt.datetime(2022, 7, 7, 19, 0, 0)
         for i in range(self.args.photo_files):
             when = photo_base + dt.timedelta(seconds=5 * i)
             name = f"{when:%Y%m%d_%H%M%S}_{i:06d}.JPG"
             path = f"/SD/PHOTO/{name}"
-            self.files["Photo"][path] = Clip(path, when, 120_000, 0.0, "JPG")
+            self.files["Photo"][path] = Clip(path, when, self.photo_size, 0.0, "JPG")
 
     def add_photo(self) -> None:
         when = dt.datetime.now()
         name = f"{when:%Y%m%d_%H%M%S}_999999.JPG"
         path = f"/SD/PHOTO/{name}"
-        self.files["Photo"][path] = Clip(path, when, 120_000, 0.0, "JPG")
+        self.files["Photo"][path] = Clip(path, when, self.photo_size, 0.0, "JPG")
 
     def add_locked_clip(self) -> None:
         when = dt.datetime.now()
         name = f"{when:%Y%m%d_%H%M%S}_{2088:06d}.MP4"
         path = f"/SD/LOCK/{name}"
-        self.files["LOCK"][path] = Clip(path, when, 5_000_000, 300.2)
+        self.files["LOCK"][path] = Clip(path, when, self.video_size, self.video_duration)
 
     def current_video_name(self) -> str:
         if not self.recording or not self.files["DCIM"]:

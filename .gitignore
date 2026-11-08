@@ -12,6 +12,7 @@ local.properties
 *.iml
 .idea/
 # Xcode
+appleApp/Signing.local.xcconfig
 DerivedData/
 xcuserdata/
 *.xcuserstate

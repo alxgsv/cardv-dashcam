@@ -8,15 +8,36 @@
 
 /* Begin PBXBuildFile section */
 		AA0000000000000000000011 /* CardvDashcamApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000007 /* CardvDashcamApp.swift */; };
-		AA0000000000000000000012 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000008 /* ContentView.swift */; };
+		AA0000000000000000000111 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000103 /* AppModel.swift */; };
+		AA0000000000000000000112 /* DownloadStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000104 /* DownloadStore.swift */; };
+		AA0000000000000000000113 /* Platform.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000105 /* Platform.swift */; };
+		AA0000000000000000000114 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000106 /* Theme.swift */; };
+		AA0000000000000000000115 /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000107 /* ConnectView.swift */; };
+		AA0000000000000000000116 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000108 /* RootView.swift */; };
+		AA0000000000000000000117 /* LibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000109 /* LibraryView.swift */; };
+		AA0000000000000000000118 /* PlaybackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010A /* PlaybackView.swift */; };
+		AA0000000000000000000119 /* ControlsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010B /* ControlsView.swift */; };
+		AA000000000000000000011A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010C /* SettingsView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		AA0000000000000000000006 /* CardvDashcam.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CardvDashcam.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA0000000000000000000007 /* CardvDashcamApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardvDashcamApp.swift; sourceTree = "<group>"; };
-		AA0000000000000000000008 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		AA0000000000000000000009 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA0000000000000000000010 /* CardvDashcam.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CardvDashcam.entitlements; sourceTree = "<group>"; };
+		AA0000000000000000000103 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		AA0000000000000000000104 /* DownloadStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DownloadStore.swift; sourceTree = "<group>"; };
+		AA0000000000000000000105 /* Platform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Platform.swift; sourceTree = "<group>"; };
+		AA0000000000000000000106 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		AA0000000000000000000107 /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000108 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000109 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
+		AA000000000000000000010A /* PlaybackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackView.swift; sourceTree = "<group>"; };
+		AA000000000000000000010B /* ControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000101 /* Model */ = {isa = PBXGroup; children = (AA0000000000000000000103 /* AppModel.swift */, AA0000000000000000000104 /* DownloadStore.swift */, AA0000000000000000000105 /* Platform.swift */); path = Model; sourceTree = "<group>"; };
+		AA0000000000000000000102 /* UI */ = {isa = PBXGroup; children = (AA0000000000000000000106 /* Theme.swift */, AA0000000000000000000107 /* ConnectView.swift */, AA0000000000000000000108 /* RootView.swift */, AA0000000000000000000109 /* LibraryView.swift */, AA000000000000000000010A /* PlaybackView.swift */, AA000000000000000000010B /* ControlsView.swift */, AA000000000000000000010C /* SettingsView.swift */); path = UI; sourceTree = "<group>"; };
+		AA000000000000000000010C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		AA000000000000000000010D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -34,6 +55,7 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000004 /* CardvDashcam */,
+				AA000000000000000000010D /* Signing.xcconfig */,
 				AA0000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -50,7 +72,8 @@
 			isa = PBXGroup;
 			children = (
 				AA0000000000000000000007 /* CardvDashcamApp.swift */,
-				AA0000000000000000000008 /* ContentView.swift */,
+				AA0000000000000000000101 /* Model */,
+				AA0000000000000000000102 /* UI */,
 				AA0000000000000000000009 /* Info.plist */,
 				AA0000000000000000000010 /* CardvDashcam.entitlements */,
 			);
@@ -149,7 +172,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA0000000000000000000011 /* CardvDashcamApp.swift in Sources */,
-				AA0000000000000000000012 /* ContentView.swift in Sources */,
+				AA0000000000000000000111 /* AppModel.swift in Sources */,
+				AA0000000000000000000112 /* DownloadStore.swift in Sources */,
+				AA0000000000000000000113 /* Platform.swift in Sources */,
+				AA0000000000000000000114 /* Theme.swift in Sources */,
+				AA0000000000000000000115 /* ConnectView.swift in Sources */,
+				AA0000000000000000000116 /* RootView.swift in Sources */,
+				AA0000000000000000000117 /* LibraryView.swift in Sources */,
+				AA0000000000000000000118 /* PlaybackView.swift in Sources */,
+				AA0000000000000000000119 /* ControlsView.swift in Sources */,
+				AA000000000000000000011A /* SettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -278,6 +310,7 @@
 		};
 		AA0000000000000000000021 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA000000000000000000010D /* Signing.xcconfig */;
 			buildSettings = {
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = CardvDashcam/CardvDashcam.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
@@ -318,6 +351,7 @@
 		};
 		AA0000000000000000000022 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA000000000000000000010D /* Signing.xcconfig */;
 			buildSettings = {
 				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = CardvDashcam/CardvDashcam.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";

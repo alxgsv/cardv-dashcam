@@ -39,6 +39,12 @@
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>CarDV Dashcam connects to your dashcam over its Wi-Fi network to browse, play and download recordings.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>CarDV Dashcam saves the recordings and snapshots you download to your photo library.</string>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

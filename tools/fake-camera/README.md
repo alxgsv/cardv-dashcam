@@ -19,6 +19,13 @@ Then point the app or a test at it:
 | Android emulator | `http://10.0.2.2:8080` |
 | Physical device on the same LAN | `http://<your-computer-ip>:8080` |
 
+The server binds to `127.0.0.1` by default, so a phone cannot reach it. For a physical device
+start it with `--host 0.0.0.0` and allow incoming connections if the macOS firewall asks:
+
+```sh
+python3 tools/fake-camera/fake_camera.py --host 0.0.0.0 --port 8080
+```
+
 In a debug Android build, open the connect screen, enter that URL under **Debug camera address** and
 press **Apply**. Release builds always use `192.168.42.1`; debug builds permit cleartext to the fake
 camera while the release policy allows only the camera address.
@@ -46,11 +53,24 @@ the fake-camera process is killed.
   fall back to the loop list, as on the real camera.
 - Media files under `/SD/MOVIE`, `/SD/SOS`, `/SD/LOCK` and `/SD/PHOTO`, with `Range` and `HEAD`
   support and the camera's `video/mpeg` content type for MP4.
-- A small sample MP4 shaped like the real recordings:
-  `ftyp (36) | skip (JPEG at offset 60) | moov | mdat`, so thumbnail extraction can be tested.
+- A small **playable** H.264 sample MP4 shaped like the real recordings:
+  `ftyp (36) | skip (JPEG at offset 60) | moov | mdat`, so thumbnails, Range requests and playback
+  can all be tested.
 - Camera quirks: HTTP 200 with a non-zero result code in the first body line, uppercase response
   headers, `709` while recording for standby-only settings, and a recording restart resetting
   `Camera.Menu.SoundRecord` to `OFF`.
+
+## Media fixture
+
+`media/sample.mp4` is a three-second 640x360 H.264 test pattern with a real JPEG in the `skip` box,
+and `media/sample.jpg` is the same frame used for `/SD/PHOTO`. The script rebuilds both, including
+the chunk-offset patch that keeps the MP4 decodable after the `skip` box is inserted:
+
+```sh
+python3 tools/fake-camera/make_sample_media.py   # requires ffmpeg
+```
+
+If the files are missing, the server falls back to its old protocol-only stub (no decodable video).
 
 ## Tests
 
@@ -61,6 +81,6 @@ are skipped when `python3` is not available. The Flicker test uses a 400 ms writ
 
 ## Limitations
 
-No RTSP/live stream, no real H.264 video, no delete/format behaviour beyond returning the documented
-result codes, and no authentication (the real camera has none either). It is a protocol and safety
-test double, not a media server.
+No RTSP/live stream, no delete/format behaviour beyond returning the documented result codes, and
+no authentication (the real camera has none either). The video fixture is a short test pattern, not
+a real recording. It is a protocol and safety test double, not a production media server.

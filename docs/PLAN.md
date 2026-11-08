@@ -135,21 +135,33 @@ the camera*). The shared core must make it impossible for a UI to do something d
   `com.apple.security.network.client`.
 - iOS routes `192.168.42.0/24` to Wi-Fi even when Wi-Fi has no internet; verify cellular fallback doesn't interfere.
 - Optional in-app join on iOS: `NEHotspotConfiguration` (needs Hotspot Configuration entitlement).
-- **Playback risk:** camera sends `CONTENT-TYPE: video/mpeg` for MP4 files; AVPlayer may refuse it.
-  Spike first (M3.0). Fallbacks: `AVAssetResourceLoaderDelegate` with a custom scheme that rewrites the type,
-  or a tiny local HTTP proxy.
+- **Playback verified (M3.0):** AVPlayer opens a real H.264 MP4 served as `CONTENT-TYPE: video/mpeg`
+  and seeks over `Range`, so the resource-loader fallback is not needed. The fake camera serves the
+  same kind of playable fixture, so playback can be tested without a car.
+- **Swift interop:** Kotlin suspend functions import as `async throws`, so no SKIE plugin is used.
+  Kotlin default arguments are not exported, so `shared/src/appleMain/.../AppleCamera.kt` holds the
+  only factory facade (client, controls, settings, clock, LOCK re-poll).
 - **Live view:** AVPlayer has no RTSP. Options, decided in the M4 spike:
   1. VLCKit (MobileVLCKit / VLCKit) – fastest; LGPL, license-compatible with MIT when dynamically linked.
   2. Own RTSP/RTP-over-TCP client in `shared` (protocol already proven in `tools/probe/ait_probe4.py`) feeding
      H.264 to VideoToolbox (`AVSampleBufferDisplayLayer`). More work, no dependency, could also replace Media3 RTSP.
-- Downloads: background `URLSession`; export to Photos (iOS) / `~/Movies/CarDV` (macOS).
+- Downloads: resumable `URLSession` `Range` transfers into `Documents/CarDV`; export to Photos (iOS)
+  or a save panel (macOS). Background `URLSession` is still a follow-up.
+- **Signing:** a paid Developer Program team signs development builds for about one year. The team
+  ID stays in `appleApp/Signing.local.xcconfig` (gitignored); `tools/apple/install-device.sh` builds,
+  installs and launches a Release app on a connected iPhone. Re-run it yearly to renew; the App
+  Store remains the no-expiry distribution route for later.
+- Shell: `TabView` (iOS) and `NavigationSplitView` (macOS); export and the `AVPlayerLayer` host are the
+  only per-platform views.
 
 ## 6. Fake camera (development without a car)
 
 `tools/fake-camera/fake_camera.py` – standard-library Python server that mimics the camera:
 - `Config.cgi` `get` / `dir` / `set` with responses copied from real probe output, including quirks
   (uppercase headers, `703` with HTTP 200, unknown folder → loop list, LOCK list delay).
-- Serves small sample MP4s with the same box layout (`ftyp | skip(JPEG at 60) | moov | mdat`) and Range support.
+- Serves a small playable H.264 fixture with the real box layout
+  (`ftyp | skip(JPEG at 60) | moov | mdat`) and Range support. `make_sample_media.py` rebuilds it
+  with ffmpeg and patches the chunk offsets after the skip box is inserted.
 - Fault injection: `--hang-on Flicker` (blocks forever), `--slow`, `--drop`, to test the safety rules.
 - RTSP: proxy a local test stream via `ffmpeg -re … -f rtsp` (MediaMTX) on port 8554.
 - Used by shared tests (JVM), Android emulator (`10.0.2.2`), iOS simulator / macOS (`localhost`).
@@ -170,8 +182,15 @@ the camera*). The shared core must make it impossible for a UI to do something d
 
 M2 and M3 can run in parallel once M1 is done.
 
-M4–M6 are implemented on Android. The Apple live-view and controls/settings work is still pending;
-its M4 spike remains the VLCKit-vs-own-client decision in §5.
+**Status:** M0–M3, M5 and M6 are done on Android and Apple. Apple live view (M4) is open; its spike
+remains the VLCKit-vs-own-client decision in §5. The Apple implementation lives in
+`appleApp/CardvDashcam/` (`Model/` for the session and downloads, `UI/` for the shared SwiftUI
+screens) and was verified against the fake camera on macOS; the iOS app was build-verified only
+because no simulator runtime was installed.
+
+**M3.0 result:** a real H.264 MP4 served with `Content-Type: video/mpeg` plays in AVPlayer on macOS
+and in the iOS simulator, so the camera's MIME type is not a blocker. The fake camera's fixture is
+now playable, including its `skip` thumbnail box.
 
 ## 8. Testing & CI
 
@@ -187,7 +206,7 @@ its M4 spike remains the VLCKit-vs-own-client decision in §5.
 
 | Risk | Mitigation |
 |---|---|
-| AVPlayer rejects `video/mpeg` MP4 | M3.0 spike with resource-loader/proxy fallback |
+| AVPlayer rejects `video/mpeg` MP4 | **Resolved in M3.0:** a real H.264 MP4 plays fine, in AVFoundation and in the simulator |
 | RTSP on Apple needs VLCKit or own decoder | M4 spike; own client is already prototyped in Python |
 | Other CarDV firmware differs (paths, folders, IP) | Make base URL and folder list configurable; COMPATIBILITY.md; probe scripts for users |
 | Untested settings can hang the camera | Safety levels, experimental toggle, health check, clear recovery message |
