@@ -31,6 +31,7 @@ import com.cardv.dashcam.ui.LiveScreen
 import com.cardv.dashcam.ui.PhotoScreen
 import com.cardv.dashcam.ui.PlaybackScreen
 import com.cardv.dashcam.ui.SettingsScreen
+import com.cardv.dashcam.ui.rememberLibraryScrollState
 import com.cardv.dashcam.ui.theme.CarDVTheme
 import com.cardv.shared.model.Clip
 
@@ -74,6 +75,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 val openClip = state.openClip
+                // Remembered here, not inside LibraryScreen: opening a clip unmounts the library,
+                // and the grid must come back at the same place when the player closes.
+                val libraryScrollState = rememberLibraryScrollState()
                 BackHandler(enabled = openClip != null) { viewModel.closeClip() }
                 BackHandler(enabled = openClip == null && state.screen != AppScreen.LIBRARY) {
                     viewModel.backToLibrary()
@@ -144,6 +148,7 @@ class MainActivity : ComponentActivity() {
 
                         else -> LibraryScreen(
                             state = state,
+                            scrollState = libraryScrollState,
                             onSelectFolder = viewModel::selectFolder,
                             onSort = viewModel::setSort,
                             onToggleGrouping = viewModel::toggleGrouping,

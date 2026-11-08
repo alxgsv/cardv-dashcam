@@ -21,8 +21,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -80,9 +82,28 @@ import com.cardv.shared.library.ClipSort
 import com.cardv.shared.model.Clip
 import com.cardv.shared.model.Folder
 
+/**
+ * Grid positions for the library, kept by the caller of [LibraryScreen].
+ *
+ * Opening a clip replaces the library with the player. Holding the positions above that swap
+ * makes the list come back where the user left it instead of at the top.
+ */
+class LibraryScrollState internal constructor(
+    val grouped: LazyGridState,
+    val flat: LazyGridState,
+)
+
+@Composable
+fun rememberLibraryScrollState(): LibraryScrollState {
+    val grouped = rememberLazyGridState()
+    val flat = rememberLazyGridState()
+    return remember(grouped, flat) { LibraryScrollState(grouped, flat) }
+}
+
 @Composable
 fun LibraryScreen(
     state: MainUiState,
+    scrollState: LibraryScrollState,
     onSelectFolder: (Folder) -> Unit,
     onSort: (ClipSort) -> Unit,
     onToggleGrouping: () -> Unit,
@@ -157,6 +178,7 @@ fun LibraryScreen(
                 state.groupByDay -> ClipGrid(
                     groups = state.groups,
                     state = state,
+                    gridState = scrollState.grouped,
                     onOpen = onOpen,
                     onThumbnail = onThumbnail,
                     onDownload = onDownload,
@@ -165,6 +187,7 @@ fun LibraryScreen(
                 else -> ClipGrid(
                     groups = listOf(ClipDayGroup(date = null, clips = state.sortedClips)),
                     state = state,
+                    gridState = scrollState.flat,
                     onOpen = onOpen,
                     onThumbnail = onThumbnail,
                     onDownload = onDownload,
@@ -435,6 +458,7 @@ private fun ToolbarPill(icon: ImageVector, label: String, onClick: () -> Unit) {
 private fun ClipGrid(
     groups: List<ClipDayGroup>,
     state: MainUiState,
+    gridState: LazyGridState,
     onOpen: (Clip) -> Unit,
     onThumbnail: (Clip) -> Unit,
     onDownload: (Clip) -> Unit,
@@ -442,6 +466,7 @@ private fun ClipGrid(
 ) {
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 160.dp),
+        state = gridState,
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 28.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
