@@ -5,9 +5,10 @@ the **Geely Atlas / Atlas Pro**, **Belgee X70** and other cars fitted with the s
 download recordings, live view, snapshots, lock clips, clock sync and settings — no cloud, no account.
 
 > Status: protocol fully reverse-engineered, shared core (M1), Android M2–M6 and Apple M3, M5 and M6
-> implemented (library, playback, downloads, controls and settings). Apple live view (M4) is the
-> remaining milestone.
-> See the [plan](docs/PLAN.md).
+> implemented (library, playback, downloads, controls and settings). Apple live view (M4) is a separate
+> branch and is not part of 1.0.0. Release engineering (M7: versioning, signed builds, release workflows,
+> app icon, release/compatibility docs) is in place; publishing waits for the signing accounts.
+> See the [plan](docs/PLAN.md) and the [release guide](docs/RELEASE.md).
 
 ## Supported cars and cameras
 
@@ -36,11 +37,11 @@ Got a different camera or car? Run the [probe tools](tools/probe/README.md) and 
 Standalone dashcams on the same firmware family (for example MStar MSC8339 models that take an `SD_CarDV.bin`
 update) may also work, but often use a different IP or `/SD/...` layout and need configuration first.
 
-## Features (planned v1)
+## Features
 
 - Recordings: loop, SOS (G-sensor events), locked clips and photos, with thumbnails
 - Play directly from the camera with seeking, or download (resumable) to your phone / Mac
-- Live view (720p with sound)
+- Live view (720p with sound; Android in 1.0.0, Apple after M4)
 - Lock the current clip, take a snapshot, mic on/off, start/stop recording
 - Automatic clock sync, SD card status, safe settings
 
@@ -56,6 +57,17 @@ Apple apps. Point `ANDROID_HOME` (or `sdk.dir` in `local.properties`) at your An
 ./gradlew :androidApp:lintDebug
 ```
 
+Release builds enable R8 and resource shrinking. Signing material is read from the gitignored
+`local.properties` or `CARDV_RELEASE_*` environment variables; without it the release APK is unsigned:
+
+```sh
+./gradlew :androidApp:assembleRelease    # APK in androidApp/build/outputs/apk/release/
+./gradlew :androidApp:bundleRelease      # AAB in androidApp/build/outputs/bundle/release/
+```
+
+See [docs/RELEASE.md](docs/RELEASE.md) for keystore setup, the GitHub Release workflow, the Apple
+archive/notarization steps and the secrets list.
+
 `appleApp/CardvDashcam.xcodeproj` is one multiplatform target with iOS and macOS destinations. Xcode runs
 Gradle (`:shared:embedAndSignAppleFrameworkForXcode`) to build the Kotlin framework before compiling Swift,
 so there is no XCFramework to build or carry around first:
@@ -66,6 +78,24 @@ open appleApp/CardvDashcam.xcodeproj
 
 CI (`.github/workflows/ci.yml`) runs the shared and Android tests, builds and lints the Android app,
 and builds both Apple destinations on every push and pull request.
+
+### Versioning and release channels
+
+The root [`version.xcconfig`](version.xcconfig) is the only version source. It feeds the Android
+`versionName`/`versionCode`, the shared `BuildInfo.VERSION`, and Xcode's `MARKETING_VERSION` /
+`CURRENT_PROJECT_VERSION`. The first release is **1.0.0**; `tools/release/check-version.sh` validates it
+and the `v1.0.0` tag. The bump procedure is in [docs/RELEASE.md](docs/RELEASE.md).
+
+| Channel | Artifact | Status |
+|---|---|---|
+| GitHub Releases | signed APK + AAB + `SHA256SUMS` | Workflow ready; needs the four Android signing secrets |
+| F-Droid | Fastlane metadata + 10000 changelog | Metadata prepared; `fdroiddata` submission follows the first tag |
+| TestFlight / unlisted App Store | iOS Release archive + IPA | Build path ready; needs Apple Developer Program, App Store Connect record and profile |
+| Notarized DMG | macOS Developer ID DMG + `.sha256` | Script ready; needs a Developer ID certificate and notary credentials |
+| Apple live view | — | Not in 1.0.0; M4 is a separate branch |
+
+Release workflows only run on `v*` tags or manual dispatch, never on pull requests or forks. Pull-request
+CI uses no secrets.
 
 No camera at hand? The shared tests start the [fake camera](tools/fake-camera/README.md) themselves;
 you can also run it for the apps:
@@ -139,10 +169,13 @@ with the Android app through the Kotlin core:
 
 `appleApp/CardvDashcam/Model/AppModel.swift` is the session and screen model;
 `shared/src/appleMain/.../AppleCamera.kt` is the only Swift-facing Kotlin facade. Kotlin suspend
-functions import into Swift as `async throws`, so no SKIE plugin is involved.
+functions import into Swift as `async throws`, so no SKIE plugin is involved. `Assets.xcassets` carries
+the iOS and macOS app icons (generated from the Android launcher art by
+`tools/apple/make-app-icon.sh`), and `PrivacyInfo.xcprivacy` declares no tracking or collected data.
 
 Apple live view is still open: `AVPlayer` has no RTSP. The VLCKit-versus-own-client decision is the
-same M4 spike described in [docs/PLAN.md](docs/PLAN.md).
+same M4 spike described in [docs/PLAN.md](docs/PLAN.md). It is a separate branch and is not part of the
+1.0.0 release.
 
 ### Installing on an iPhone (one-year signature)
 
@@ -186,6 +219,9 @@ CARDV_BASE_URL=http://127.0.0.1:8080 \
 
 - [docs/PROTOCOL.md](docs/PROTOCOL.md) — the camera's HTTP/RTSP protocol, with every quirk we found
 - [docs/PLAN.md](docs/PLAN.md) — architecture (Kotlin Multiplatform + native UI) and milestones
+- [docs/RELEASE.md](docs/RELEASE.md) — version bump, signing, GitHub Release, TestFlight and notarization
+- [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) — supported cars/firmware and the tested-on table
+- [.github/ISSUE_TEMPLATE/camera-report.yml](.github/ISSUE_TEMPLATE/camera-report.yml) — report a camera
 - [tools/probe/](tools/probe/README.md) — Python scripts to probe a camera
 - [tools/fake-camera/](tools/fake-camera/README.md) — fake camera for development and tests
 

@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Probe tools and protocol notes
+    url: https://github.com/alxgsv/cardv-dashcam/blob/master/tools/probe/README.md
+    about: Run these before a camera report; they explain what to remove before posting.
+  - name: Supported cars and firmware
+    url: https://github.com/alxgsv/cardv-dashcam/blob/master/docs/COMPATIBILITY.md
+    about: Check the baseline firmware and the currently tested configurations.

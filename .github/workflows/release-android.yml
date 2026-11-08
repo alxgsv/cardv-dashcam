@@ -1,0 +1,115 @@
+name: Release Android
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+concurrency:
+  group: release-android-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  signed-apk:
+    name: Signed APK and AAB
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Check version and tag
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          if [[ "$REF_TYPE" == "tag" ]]; then
+            tools/release/check-version.sh "$REF_NAME"
+          else
+            tools/release/check-version.sh
+          fi
+
+      - name: Check signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=()
+          for name in ANDROID_KEYSTORE_BASE64 ANDROID_KEYSTORE_PASSWORD \
+                      ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [[ -z "${!name:-}" ]]; then missing+=("$name"); fi
+          done
+          if (( ${#missing[@]} )); then
+            echo "::error::Missing release secrets: ${missing[*]}"
+            exit 1
+          fi
+
+      - name: Decode release keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/release.jks"
+          chmod 600 "$RUNNER_TEMP/release.jks"
+
+      - name: Build signed APK and AAB (R8 + resource shrinking)
+        env:
+          CARDV_RELEASE_STORE_FILE: ${{ runner.temp }}/release.jks
+          CARDV_RELEASE_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          CARDV_RELEASE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          CARDV_RELEASE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: >
+          ./gradlew :androidApp:requireReleaseSigning
+          :androidApp:assembleRelease :androidApp:bundleRelease --stacktrace
+
+      - name: Verify APK signature
+        run: |
+          APK="$(find androidApp/build/outputs/apk/release -name '*.apk' | head -n 1)"
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)"
+          "$APKSIGNER" verify --print-certs "$APK"
+
+      - name: Collect release files and checksums
+        run: |
+          mkdir -p dist
+          cp "$(find androidApp/build/outputs/apk/release -name '*.apk' | head -n 1)" dist/
+          cp "$(find androidApp/build/outputs/bundle/release -name '*.aab' | head -n 1)" dist/
+          cd dist
+          sha256sum *.apk *.aab > SHA256SUMS
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cardv-dashcam-android-release
+          path: dist/*
+          if-no-files-found: error
+
+      - name: Find release notes
+        id: notes
+        run: |
+          if [[ -f "docs/releases/${{ github.ref_name }}.md" ]]; then
+            echo "path=docs/releases/${{ github.ref_name }}.md" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish GitHub Release with notes
+        if: startsWith(github.ref, 'refs/tags/') && steps.notes.outputs.path != ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          body_path: ${{ steps.notes.outputs.path }}
+          fail_on_unmatched_files: true
+
+      - name: Publish GitHub Release with generated notes
+        if: startsWith(github.ref, 'refs/tags/') && steps.notes.outputs.path == ''
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

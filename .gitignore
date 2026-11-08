@@ -16,5 +16,16 @@ appleApp/Signing.local.xcconfig
 DerivedData/
 xcuserdata/
 *.xcuserstate
+
+# Signing and release secrets — never commit these
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.mobileprovision
+AuthKey_*.p8
+*.p8
+*.cer
+/dist/
 # macOS
 .DS_Store

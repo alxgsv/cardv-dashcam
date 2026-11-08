@@ -1,0 +1,111 @@
+name: Camera compatibility report
+description: Report a car/camera that works or fails with CarDV Dashcam
+title: "[Camera] <car> — <firmware>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing. This report is used to keep
+        [docs/COMPATIBILITY.md](https://github.com/alxgsv/cardv-dashcam/blob/master/docs/COMPATIBILITY.md)
+        accurate. A report can be for a working camera or a camera that fails.
+
+        **Remove your MAC addresses, Wi-Fi network name, number plate and personal clip names/times**
+        before pasting probe output. Never attach a firmware file.
+
+  - type: input
+    id: car
+    attributes:
+      label: Car and model year
+      description: For example "Geely Atlas Pro 2023" or "Belgee X70".
+      placeholder: Geely Atlas Pro 2023
+    validations:
+      required: true
+
+  - type: input
+    id: firmware
+    attributes:
+      label: Firmware string
+      description: >
+        Output of
+        `http://192.168.42.1/cgi-bin/Config.cgi?action=get&property=Camera.Menu.FWversion`.
+        It usually starts with `MS;ms8339...`.
+      placeholder: MS;ms8339DEW;LS01;…;GEELY_Z3152_V1.2;…
+    validations:
+      required: true
+
+  - type: input
+    id: address
+    attributes:
+      label: Camera address
+      description: Usually 192.168.42.1. Say if it is different.
+      placeholder: 192.168.42.1
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: App platform
+      multiple: true
+      options:
+        - Android
+        - iOS
+        - macOS
+        - Shared/probe tool only
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: App version
+      description: Shown on the connect screen (for example 1.0.0), or "not installed".
+      placeholder: 1.0.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: works
+    attributes:
+      label: What works
+      description: Connect, folders, thumbnails, playback, seek, download, live view, controls, settings.
+      placeholder: Connect, DCIM/SOS/LOCK/Photo lists, playback and downloads work.
+    validations:
+      required: true
+
+  - type: textarea
+    id: fails
+    attributes:
+      label: What fails
+      description: Include the exact screen, error text and what you tapped. Say whether the camera stayed reachable.
+      placeholder: Live view stays on "Connecting"; the camera still lists files afterwards.
+    validations:
+      required: true
+
+  - type: textarea
+    id: folders
+    attributes:
+      label: Folders and live URL (if different)
+      description: Output of a `dir` request or the folder names you see, and the RTSP path if you know it.
+      placeholder: DCIM, SOS, LOCK, Photo; liveRTSP/av2
+
+  - type: textarea
+    id: probe
+    attributes:
+      label: Sanitized probe output
+      description: >
+        Optional but very useful. Run the tools in `tools/probe/README.md` and paste the relevant part
+        after removing MAC addresses, Wi-Fi names and personal clip names/times.
+      render: text
+
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I removed MAC addresses, Wi-Fi names, number plates and personal clip names/times.
+          required: true
+        - label: I did not attach firmware files or passwords.
+          required: true
+        - label: I understand that some settings can hang the camera until the car is restarted.
+          required: true

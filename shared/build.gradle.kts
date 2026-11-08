@@ -5,6 +5,31 @@ plugins {
     alias(libs.plugins.android.library)
 }
 
+// BuildInfo.VERSION comes from the root version.xcconfig, the same file Android and Xcode use.
+val generatedVersionDir = layout.buildDirectory.dir("generated/version/commonMain/kotlin")
+
+val generateBuildInfo = tasks.register("generateBuildInfo") {
+    val versionName = rootProject.extra["cardvVersionName"] as String
+    inputs.property("version", versionName)
+    outputs.dir(generatedVersionDir)
+    doLast {
+        val file = generatedVersionDir.get()
+            .file("com/cardv/shared/GeneratedBuildInfo.kt")
+            .asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            package com.cardv.shared
+
+            // Generated from version.xcconfig by :shared:generateBuildInfo. Do not edit.
+            internal object GeneratedBuildInfo {
+                const val VERSION: String = "$versionName"
+            }
+            """.trimIndent() + "\n",
+        )
+    }
+}
+
 kotlin {
     androidTarget {
         compilerOptions {
@@ -27,6 +52,9 @@ kotlin {
     }
 
     sourceSets {
+        getByName("commonMain").kotlin.srcDir(
+            generateBuildInfo.map { generatedVersionDir.get().asFile },
+        )
         commonMain.dependencies {
             // HttpClientEngine and LocalDateTime appear in the public CameraClient API.
             api(libs.ktor.client.core)

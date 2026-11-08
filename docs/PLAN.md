@@ -83,7 +83,10 @@ cardv-dashcam/
 ├── docs/
 │   ├── PROTOCOL.md            camera protocol (source of truth)
 │   ├── PLAN.md                this file
-│   └── COMPATIBILITY.md       cameras/firmware strings reported to work
+│   ├── COMPATIBILITY.md       cameras/firmware strings reported to work
+│   ├── RELEASE.md             version bump, signing, store/notarization checklists
+│   └── releases/              hand-written release notes per tag
+├── fastlane/metadata/android/ F-Droid/store description, icon and changelog
 ├── shared/                    Kotlin Multiplatform module
 │   └── src/{commonMain,commonTest,androidMain,appleMain}/kotlin/…
 ├── androidApp/                Android app (Compose)
@@ -178,15 +181,21 @@ the camera*). The shared core must make it impossible for a UI to do something d
 | M4 | Live view | RTSP spike decided (VLCKit vs own client); live view on all three |
 | M5 | Controls & status | Mic, snapshot, lock (with LOCK re-poll), record toggle, status / SD card screen |
 | M6 | Settings | `SAFE` settings UI; experimental toggle; format SD flow (stop recording → format → verify → resume) |
-| M7 | Release | Signed APK on GitHub Releases (+ F-Droid metadata), TestFlight, notarized macOS DMG; COMPATIBILITY.md + issue template |
+| M7 | Release | One version source, signed APK/AAB on GitHub Releases (+ F-Droid metadata), TestFlight/unlisted App Store path, notarized macOS DMG, app icon, COMPATIBILITY.md + issue template |
 
 M2 and M3 can run in parallel once M1 is done.
 
-**Status:** M0–M3, M5 and M6 are done on Android and Apple. Apple live view (M4) is open; its spike
-remains the VLCKit-vs-own-client decision in §5. The Apple implementation lives in
+**Status:** M0–M3, M5 and M6 are done on Android and Apple. Apple live view (M4) is open on its own
+branch; its spike remains the VLCKit-vs-own-client decision in §5. The Apple implementation lives in
 `appleApp/CardvDashcam/` (`Model/` for the session and downloads, `UI/` for the shared SwiftUI
-screens) and was verified against the fake camera on macOS; the iOS app was build-verified only
-because no simulator runtime was installed.
+screens) and was verified against the fake camera on macOS and in the iOS Simulator.
+
+M7 release engineering is implemented without publishing anything: `version.xcconfig` is the single
+version source, Android release signing reads local properties or environment variables, R8/resource
+shrinking is on, a tag-triggered Android GitHub Release workflow exists, and the Apple release workflow
+is manual-only until its signing credentials are configured. The app icon, privacy manifest,
+[RELEASE.md](RELEASE.md), [COMPATIBILITY.md](COMPATIBILITY.md) and camera report template are in place.
+Actual publication still needs the account-side signing material listed in RELEASE.md.
 
 **M3.0 result:** a real H.264 MP4 served with `Content-Type: video/mpeg` plays in AVPlayer on macOS
 and in the iOS simulator, so the camera's MIME type is not a blocker. The fake camera's fixture is
@@ -200,7 +209,10 @@ now playable, including its `skip` thumbnail box.
 - **UI smoke:** Android instrumented test on emulator + fake camera; XCUITest on iOS simulator.
 - **On the real car (manual checklist per release):** connect, lists, play, download, live, clock, mic, lock.
 - **GitHub Actions:** `ubuntu` – shared tests, Android build + lint; `macos` – shared Apple tests,
-  `xcodebuild` iOS + macOS.
+  `xcodebuild` iOS Simulator + macOS. The Android release workflow runs on `v*` tags or manual dispatch
+  and builds a signed APK/AAB plus a GitHub Release with `SHA256SUMS`. The Apple workflow is manual-only
+  until its signing secrets exist; it then builds the iOS archive and notarized macOS DMG. Pull requests
+  and forks never receive release secrets.
 
 ## 9. Open questions / risks
 
@@ -211,6 +223,9 @@ now playable, including its `skip` thumbnail box.
 | Other CarDV firmware differs (paths, folders, IP) | Make base URL and folder list configurable; COMPATIBILITY.md; probe scripts for users |
 | Untested settings can hang the camera | Safety levels, experimental toggle, health check, clear recovery message |
 | Brand names in store listings | Repo/app name stays generic ("CarDV Dashcam"); Geely only as "works with" |
+| Release secrets leak into a build or fork | Release workflows are tag/manual only; PR CI uses no secrets; signing files are gitignored and decoded into `$RUNNER_TEMP` |
+| Release notes claim Apple live view before M4 | Versioned notes ([releases/v1.0.0.md](releases/v1.0.0.md)) state that Apple live view is not included; update only after M4 merges |
 
-Decisions still open (defaults assumed above): app display name, minimum OS versions, whether to publish to
-Google Play / App Store or GitHub-only at first.
+Decisions taken for 1.0.0: display name "CarDV Dashcam", Android minSdk 26, iOS 16+, macOS 13+,
+GitHub Releases for Android first, TestFlight/unlisted App Store for iOS, and a notarized DMG for macOS;
+Google Play and a public App Store listing come later.
