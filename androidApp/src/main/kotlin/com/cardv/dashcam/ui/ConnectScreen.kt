@@ -51,7 +51,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -137,21 +136,6 @@ fun ConnectScreen(
                 },
                 style = MaterialTheme.typography.displaySmall,
                 color = colors.onBackground,
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "The road,\nreplayed.",
-                style = MaterialTheme.typography.headlineMedium,
-                color = colors.onBackground,
-                textAlign = TextAlign.Center,
-                lineHeight = 34.sp,
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = "Browse, stream and save clips from your dashcam.\nNo cloud. No account.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = colors.onSurfaceVariant,
-                textAlign = TextAlign.Center,
             )
             Spacer(Modifier.height(26.dp))
 
@@ -256,13 +240,6 @@ fun ConnectScreen(
                 }
             }
 
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = "Made for the open road",
-                style = MaterialTheme.typography.labelSmall,
-                color = colors.onSurfaceVariant.copy(alpha = 0.65f),
-                letterSpacing = 1.sp,
-            )
         }
     }
 }
