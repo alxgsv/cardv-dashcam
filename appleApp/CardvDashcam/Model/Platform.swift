@@ -55,10 +55,10 @@ enum CameraPreferences {
     static var liveURLOverride: String? {
         get {
             #if DEBUG
-            if let fromEnvironment = normalized(ProcessInfo.processInfo.environment["CARDV_LIVE_URL"]) {
+            if let fromEnvironment = normalizedLive(ProcessInfo.processInfo.environment["CARDV_LIVE_URL"]) {
                 return fromEnvironment
             }
-            return normalized(UserDefaults.standard.string(forKey: liveKey))
+            return normalizedLive(UserDefaults.standard.string(forKey: liveKey))
             #else
             return nil
             #endif
@@ -92,6 +92,20 @@ enum CameraPreferences {
         #else
         return false
         #endif
+    }
+
+    /// RTSP addresses must keep their own scheme; `normalized` would turn them into `http://rtsp://…`.
+    static func normalizedLive(_ raw: String?) -> String? {
+        var text = raw?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !text.isEmpty else { return nil }
+        if !text.lowercased().hasPrefix("rtsp://") {
+            text = "rtsp://" + text
+        }
+        guard let components = URLComponents(string: text),
+              components.host?.isEmpty == false,
+              components.scheme?.lowercased() == "rtsp" else { return nil }
+        while text.hasSuffix("/") { text.removeLast() }
+        return text
     }
 
     /// Trim, add a scheme, drop a trailing slash; `nil` for blank or host-less input.

@@ -32,6 +32,7 @@ struct RootView: View {
 
 enum ShellSection: Hashable {
     case library
+    case live
     case camera
     case settings
 }
@@ -45,6 +46,7 @@ struct MainShell: View {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["CARDV_START_SECTION"]?.lowercased() {
         case "library": return .library
+        case "live": return .live
         case "camera": return .camera
         case "settings": return .settings
         default: return nil
@@ -63,6 +65,9 @@ struct MainShell: View {
             LibraryView()
                 .tabItem { Label("Library", systemImage: "square.grid.2x2.fill") }
                 .tag(ShellSection.library)
+            LiveView()
+                .tabItem { Label("Live", systemImage: "dot.radiowaves.left.and.right") }
+                .tag(ShellSection.live)
             ControlsView()
                 .tabItem { Label("Camera", systemImage: "video.fill") }
                 .tag(ShellSection.camera)
@@ -83,6 +88,8 @@ struct MainShell: View {
             List(selection: $section) {
                 Label("Library", systemImage: "square.grid.2x2.fill")
                     .tag(ShellSection.library)
+                Label("Live", systemImage: "dot.radiowaves.left.and.right")
+                    .tag(ShellSection.live)
                 Label("Camera", systemImage: "video.fill")
                     .tag(ShellSection.camera)
                 Label("Settings", systemImage: "slider.horizontal.3")
@@ -94,6 +101,7 @@ struct MainShell: View {
         } detail: {
             switch section ?? .library {
             case .library: LibraryView()
+            case .live: LiveView()
             case .camera: ControlsView()
             case .settings: SettingsView()
             }

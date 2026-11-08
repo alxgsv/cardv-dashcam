@@ -4,10 +4,10 @@ Open-source **Android, iOS and macOS** app for Wi-Fi dashcams built on the **AIT
 the **Geely Atlas / Atlas Pro**, **Belgee X70** and other cars fitted with the same camera: browse, play and
 download recordings, live view, snapshots, lock clips, clock sync and settings — no cloud, no account.
 
-> Status: protocol fully reverse-engineered, shared core (M1), Android M2–M6 and Apple M3, M5 and M6
-> implemented (library, playback, downloads, controls and settings). Apple live view (M4) is a separate
-> branch and is not part of 1.0.0. Release engineering (M7: versioning, signed builds, release workflows,
-> app icon, release/compatibility docs) is in place; publishing waits for the signing accounts.
+> Status: protocol fully reverse-engineered, shared core (M1), Android and Apple M2–M6 implemented
+> (library, playback, downloads, live view, controls and settings). Release engineering (M7:
+> versioning, signed builds, release workflows, app icon, release/compatibility docs) is in place;
+> publishing waits for the signing accounts.
 > See the [plan](docs/PLAN.md) and the [release guide](docs/RELEASE.md).
 
 ## Supported cars and cameras
@@ -103,7 +103,12 @@ you can also run it for the apps:
 ```sh
 python3 tools/fake-camera/fake_camera.py --port 8080          # simulator / Mac: 127.0.0.1
 python3 tools/fake-camera/fake_camera.py --host 0.0.0.0       # physical phone on the same Wi-Fi
+
+tools/fake-camera/start-live-stream.sh                        # MediaMTX live stream on :8554
 ```
+
+The fake camera has no RTSP. `start-live-stream.sh` starts MediaMTX and publishes a 720p H.264 + AAC
+test pattern with ffmpeg; point the debug live URL at `rtsp://127.0.0.1:8554/live`.
 
 Debug builds show a **Debug camera address** field on the connect screen (release builds always use
 `192.168.42.1`). On the Android emulator point it at `http://10.0.2.2:8080`; on a device use your
@@ -150,10 +155,11 @@ MediaMTX/ffmpeg test stream.
 
 ## Apple apps (iOS and macOS)
 
-One SwiftUI codebase and one Xcode target serve both Apple platforms; only three things are
+One SwiftUI codebase and one Xcode target serve both Apple platforms; only a few things are
 per-platform: the shell (`TabView` on iOS, `NavigationSplitView` on macOS), the export destination
-(Photos on iOS, a save panel on macOS) and the `AVPlayerLayer` host view. Everything else is shared
-with the Android app through the Kotlin core:
+(Photos on iOS, a save panel on macOS) and the two AVFoundation layer hosts (`AVPlayerLayer` for
+playback, `AVSampleBufferDisplayLayer` for live view). Everything else is shared with the Android
+app through the Kotlin core:
 
 - **Connect** — health check, clock sync on connect, and a warm connect screen with the same copy as
   Android. The Local Network prompt is explained before the first request.
@@ -164,18 +170,19 @@ with the Android app through the Kotlin core:
 - **Downloads** — resumable `Range` downloads with a `.part` file, progress on the tile, and
   "Save to Photos" (iOS) or "Save As…" (macOS).
 - **Camera** — status, mic, snapshot, lock, record toggle and clock sync.
+- **Live view** — an own RTSP/RTP-over-TCP client in the shared core (no VLCKit) feeds
+  `AVSampleBufferDisplayLayer` for 720p H.264 and `AVSampleBufferAudioRenderer` for AAC, with
+  connecting/live/stopped/error states, a start/stop control, and stream statistics. It is a separate
+  stream from HTTP playback and does not stop the camera recording.
 - **Settings** — the shared `SettingsCatalog`, the experimental opt-in, standby settings and the
   typed-confirmation SD format / factory reset flows, including "Download SOS + LOCK first".
 
-`appleApp/CardvDashcam/Model/AppModel.swift` is the session and screen model;
-`shared/src/appleMain/.../AppleCamera.kt` is the only Swift-facing Kotlin facade. Kotlin suspend
-functions import into Swift as `async throws`, so no SKIE plugin is involved. `Assets.xcassets` carries
-the iOS and macOS app icons (generated from the Android launcher art by
-`tools/apple/make-app-icon.sh`), and `PrivacyInfo.xcprivacy` declares no tracking or collected data.
-
-Apple live view is still open: `AVPlayer` has no RTSP. The VLCKit-versus-own-client decision is the
-same M4 spike described in [docs/PLAN.md](docs/PLAN.md). It is a separate branch and is not part of the
-1.0.0 release.
+`appleApp/CardvDashcam/Model/AppModel.swift` is the session and screen model, `Model/LiveModel.swift`
+owns a live session, and `Live/` holds the AVFoundation decoder. The Swift-facing Kotlin facades are
+`shared/src/appleMain/.../AppleCamera.kt` and `AppleLive.kt`. Kotlin suspend functions import into
+Swift as `async throws`, so no SKIE plugin is involved. `Assets.xcassets` carries the iOS and macOS
+app icons (generated from the Android launcher art by `tools/apple/make-app-icon.sh`), and
+`PrivacyInfo.xcprivacy` declares no tracking or collected data.
 
 ### Installing on an iPhone (one-year signature)
 
@@ -204,9 +211,11 @@ If Xcode reports `PLA Update available`, accept the current Program License Agre
 developer account and try again.
 
 For the simulator or a headless run, a debug build reads `CARDV_BASE_URL` (and `CARDV_LIVE_URL`,
-`CARDV_START_SECTION=library|camera|settings`) from the environment, connects on launch, and shows
-the address under Developer options. `-openFirstClip` and `-openFirstPhoto` launch arguments open a
-clip or snapshot directly for smoke tests:
+`CARDV_START_SECTION=library|live|camera|settings`, `CARDV_LIVE_STOP_AFTER`) from the environment,
+connects on launch, and shows the address under Developer options. `CARDV_LIVE_STOP_AFTER` stops
+the live stream after that many seconds, which makes headless start/stop checks easy.
+`-openFirstClip` and `-openFirstPhoto` launch arguments open a clip or snapshot directly for smoke
+tests:
 
 ```sh
 xcodebuild -project appleApp/CardvDashcam.xcodeproj -scheme CardvDashcam \
@@ -221,6 +230,7 @@ CARDV_BASE_URL=http://127.0.0.1:8080 \
 - [docs/PLAN.md](docs/PLAN.md) — architecture (Kotlin Multiplatform + native UI) and milestones
 - [docs/RELEASE.md](docs/RELEASE.md) — version bump, signing, GitHub Release, TestFlight and notarization
 - [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) — supported cars/firmware and the tested-on table
+- [docs/M4-SPIKE.md](docs/M4-SPIKE.md) — the VLCKit vs own-RTSP-client live-view spike and its numbers
 - [.github/ISSUE_TEMPLATE/camera-report.yml](.github/ISSUE_TEMPLATE/camera-report.yml) — report a camera
 - [tools/probe/](tools/probe/README.md) — Python scripts to probe a camera
 - [tools/fake-camera/](tools/fake-camera/README.md) — fake camera for development and tests

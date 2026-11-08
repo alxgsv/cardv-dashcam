@@ -143,6 +143,16 @@ final class AppModel: ObservableObject {
         clipsByFolder[folder.property]?.count
     }
 
+    /// RTSP live stream for the camera, or the debug override from Developer options.
+    var liveURL: String? {
+        if let override = CameraPreferences.liveURLOverride, !override.isEmpty {
+            return override
+        }
+        return session?.client.liveUrl(stream: LiveStream.av2)
+    }
+
+    var isLiveOverridden: Bool { CameraPreferences.liveURLOverride != nil }
+
     func thumbnail(for clip: Clip) -> PlatformImage? {
         thumbnails[clip.path]
     }

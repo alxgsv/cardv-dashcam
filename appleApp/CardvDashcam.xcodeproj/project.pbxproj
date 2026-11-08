@@ -20,6 +20,10 @@
 		AA000000000000000000011A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000000000000000000010C /* SettingsView.swift */; };
 		AA000000000000000000011B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000120 /* Assets.xcassets */; };
 		AA000000000000000000011C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000121 /* PrivacyInfo.xcprivacy */; };
+		AA0000000000000000000211 /* LiveDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000201 /* LiveDecoder.swift */; };
+		AA0000000000000000000212 /* LiveVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000202 /* LiveVideoView.swift */; };
+		AA0000000000000000000213 /* LiveModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000203 /* LiveModel.swift */; };
+		AA0000000000000000000214 /* LiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0000000000000000000204 /* LiveView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -36,12 +40,17 @@
 		AA0000000000000000000109 /* LibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryView.swift; sourceTree = "<group>"; };
 		AA000000000000000000010A /* PlaybackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackView.swift; sourceTree = "<group>"; };
 		AA000000000000000000010B /* ControlsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControlsView.swift; sourceTree = "<group>"; };
-		AA0000000000000000000101 /* Model */ = {isa = PBXGroup; children = (AA0000000000000000000103 /* AppModel.swift */, AA0000000000000000000104 /* DownloadStore.swift */, AA0000000000000000000105 /* Platform.swift */); path = Model; sourceTree = "<group>"; };
-		AA0000000000000000000102 /* UI */ = {isa = PBXGroup; children = (AA0000000000000000000106 /* Theme.swift */, AA0000000000000000000107 /* ConnectView.swift */, AA0000000000000000000108 /* RootView.swift */, AA0000000000000000000109 /* LibraryView.swift */, AA000000000000000000010A /* PlaybackView.swift */, AA000000000000000000010B /* ControlsView.swift */, AA000000000000000000010C /* SettingsView.swift */); path = UI; sourceTree = "<group>"; };
+		AA0000000000000000000101 /* Model */ = {isa = PBXGroup; children = (AA0000000000000000000103 /* AppModel.swift */, AA0000000000000000000104 /* DownloadStore.swift */, AA0000000000000000000105 /* Platform.swift */, AA0000000000000000000203 /* LiveModel.swift */); path = Model; sourceTree = "<group>"; };
+		AA0000000000000000000205 /* Live */ = {isa = PBXGroup; children = (AA0000000000000000000201 /* LiveDecoder.swift */, AA0000000000000000000202 /* LiveVideoView.swift */); path = Live; sourceTree = "<group>"; };
+		AA0000000000000000000102 /* UI */ = {isa = PBXGroup; children = (AA0000000000000000000106 /* Theme.swift */, AA0000000000000000000107 /* ConnectView.swift */, AA0000000000000000000108 /* RootView.swift */, AA0000000000000000000109 /* LibraryView.swift */, AA000000000000000000010A /* PlaybackView.swift */, AA000000000000000000010B /* ControlsView.swift */, AA000000000000000000010C /* SettingsView.swift */, AA0000000000000000000204 /* LiveView.swift */); path = UI; sourceTree = "<group>"; };
 		AA000000000000000000010C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		AA000000000000000000010D /* Signing.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Signing.xcconfig; sourceTree = "<group>"; };
 		AA0000000000000000000120 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA0000000000000000000121 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		AA0000000000000000000201 /* LiveDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveDecoder.swift; sourceTree = "<group>"; };
+		AA0000000000000000000202 /* LiveVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveVideoView.swift; sourceTree = "<group>"; };
+		AA0000000000000000000203 /* LiveModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveModel.swift; sourceTree = "<group>"; };
+		AA0000000000000000000204 /* LiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -78,6 +87,7 @@
 				AA0000000000000000000007 /* CardvDashcamApp.swift */,
 				AA0000000000000000000101 /* Model */,
 				AA0000000000000000000102 /* UI */,
+				AA0000000000000000000205 /* Live */,
 				AA0000000000000000000009 /* Info.plist */,
 				AA0000000000000000000010 /* CardvDashcam.entitlements */,
 				AA0000000000000000000120 /* Assets.xcassets */,
@@ -190,6 +200,10 @@
 				AA0000000000000000000118 /* PlaybackView.swift in Sources */,
 				AA0000000000000000000119 /* ControlsView.swift in Sources */,
 				AA000000000000000000011A /* SettingsView.swift in Sources */,
+				AA0000000000000000000211 /* LiveDecoder.swift in Sources */,
+				AA0000000000000000000212 /* LiveVideoView.swift in Sources */,
+				AA0000000000000000000213 /* LiveModel.swift in Sources */,
+				AA0000000000000000000214 /* LiveView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

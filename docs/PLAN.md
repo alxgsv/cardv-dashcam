@@ -38,7 +38,7 @@ Kotlin Multiplatform: one shared core, native UI per platform.
      │ Jetpack Compose        │             │ SwiftUI, multiplatform target      │
      │ Media3 ExoPlayer       │             │   iOS + macOS share ~90% of views  │
      │   HTTP MP4 + RTSP      │             │ AVPlayer (HTTP MP4)                │
-     │ WorkManager downloads  │             │ VLCKit or own RTSP client (live)   │
+     │ WorkManager downloads  │             │ own RTSP client (live, shared)     │
      │ MediaStore export      │             │ URLSession background downloads    │
      └────────────────────────┘             └────────────────────────────────────┘
 ```
@@ -54,7 +54,7 @@ Kotlin Multiplatform: one shared core, native UI per platform.
 | Settings catalog with safety levels | shared | Single source for all three UIs |
 | Download queue state (what, progress, resume offset) | shared | Byte transfer done by platform for background support |
 | Network binding to the no-internet Wi-Fi | platform (`expect/actual`) | Android needs explicit binding; Apple mostly not |
-| Video playback, live view | platform | Native players |
+| Video playback, live decoding | platform | AVPlayer / Media3; the RTSP protocol is shared |
 | UI, navigation, notifications, file export | platform | |
 
 ### Shared API sketch
@@ -144,18 +144,20 @@ the camera*). The shared core must make it impossible for a UI to do something d
 - **Swift interop:** Kotlin suspend functions import as `async throws`, so no SKIE plugin is used.
   Kotlin default arguments are not exported, so `shared/src/appleMain/.../AppleCamera.kt` holds the
   only factory facade (client, controls, settings, clock, LOCK re-poll).
-- **Live view:** AVPlayer has no RTSP. Options, decided in the M4 spike:
-  1. VLCKit (MobileVLCKit / VLCKit) – fastest; LGPL, license-compatible with MIT when dynamically linked.
-  2. Own RTSP/RTP-over-TCP client in `shared` (protocol already proven in `tools/probe/ait_probe4.py`) feeding
-     H.264 to VideoToolbox (`AVSampleBufferDisplayLayer`). More work, no dependency, could also replace Media3 RTSP.
+- **Live view (M4):** AVPlayer has no RTSP, so live view uses the own RTSP/RTP-over-TCP client in
+  `shared` (ported from `tools/probe/ait_probe4.py`). H.264 access units go to
+  `AVSampleBufferDisplayLayer` (VideoToolbox) and AAC to `AVSampleBufferAudioRenderer`; a render
+  synchronizer keeps the tracks together. There is no VLCKit dependency. Spike numbers are under
+  *M4 result* below.
 - Downloads: resumable `URLSession` `Range` transfers into `Documents/CarDV`; export to Photos (iOS)
   or a save panel (macOS). Background `URLSession` is still a follow-up.
 - **Signing:** a paid Developer Program team signs development builds for about one year. The team
   ID stays in `appleApp/Signing.local.xcconfig` (gitignored); `tools/apple/install-device.sh` builds,
   installs and launches a Release app on a connected iPhone. Re-run it yearly to renew; the App
   Store remains the no-expiry distribution route for later.
-- Shell: `TabView` (iOS) and `NavigationSplitView` (macOS); export and the `AVPlayerLayer` host are the
-  only per-platform views.
+- Shell: `TabView` (iOS) and `NavigationSplitView` (macOS); export and the two layer hosts
+  (`AVPlayerLayer` for playback, `AVSampleBufferDisplayLayer` for live view) are the only
+  per-platform views.
 
 ## 6. Fake camera (development without a car)
 
@@ -166,7 +168,8 @@ the camera*). The shared core must make it impossible for a UI to do something d
   (`ftyp | skip(JPEG at 60) | moov | mdat`) and Range support. `make_sample_media.py` rebuilds it
   with ffmpeg and patches the chunk offsets after the skip box is inserted.
 - Fault injection: `--hang-on Flicker` (blocks forever), `--slow`, `--drop`, to test the safety rules.
-- RTSP: proxy a local test stream via `ffmpeg -re … -f rtsp` (MediaMTX) on port 8554.
+- RTSP: the fake camera has no live stream. `start-live-stream.sh` runs MediaMTX on port 8554 and
+  publishes an ffmpeg test pattern (H.264 720p + AAC 32 kHz), which the debug live URL points at.
 - Used by shared tests (JVM), Android emulator (`10.0.2.2`), iOS simulator / macOS (`localhost`).
 
 ## 7. Milestones
@@ -185,10 +188,11 @@ the camera*). The shared core must make it impossible for a UI to do something d
 
 M2 and M3 can run in parallel once M1 is done.
 
-**Status:** M0–M3, M5 and M6 are done on Android and Apple. Apple live view (M4) is open on its own
-branch; its spike remains the VLCKit-vs-own-client decision in §5. The Apple implementation lives in
-`appleApp/CardvDashcam/` (`Model/` for the session and downloads, `UI/` for the shared SwiftUI
-screens) and was verified against the fake camera on macOS and in the iOS Simulator.
+**Status:** M0–M6 are done on Android and Apple. Apple live view (M4) uses the own shared RTSP
+client, not VLCKit. The Apple implementation lives in `appleApp/CardvDashcam/` (`Model/` for the
+session, downloads and live model, `Live/` for the AVFoundation decoder, `UI/` for the shared
+SwiftUI screens). It is verified against the fake camera and a MediaMTX stream on macOS and in the
+iOS simulator.
 
 M7 release engineering is implemented without publishing anything: `version.xcconfig` is the single
 version source, Android release signing reads local properties or environment variables, R8/resource
@@ -200,6 +204,16 @@ Actual publication still needs the account-side signing material listed in RELEA
 **M3.0 result:** a real H.264 MP4 served with `Content-Type: video/mpeg` plays in AVPlayer on macOS
 and in the iOS simulator, so the camera's MIME type is not a blocker. The fake camera's fixture is
 now playable, including its `skip` thumbnail box.
+
+**M4 result (live view):** decision — own client. VLCKit 4.0 (unstable build 2026-09-29) was measured
+on macOS against a local MediaMTX/ffmpeg stream: 115 ms from play to the `playing` state, one video
+and one audio track, 1280x720 video output and a decoded snapshot, and 52 ms to stop. Against the
+same stream the own client reached the first frame in 216 ms in the iOS simulator and 220 ms–1.8 s on
+macOS (first-frame time is GOP-bound: the test encoder sends an IDR every 1–2 s; the camera sends one
+about every 0.3 s). It streams 30 fps, ~2 Mbit/s video, AAC 32 kHz stereo at ~64 kbit/s, 0 lost RTP
+packets, and stops in 24–27 ms. VLCKit would add an 880 MB source archive / 2.8 GB XCFramework and an LGPL dynamic
+dependency; the own client is ~600 lines in `shared`, has unit and integration tests, and can later
+replace Media3 RTSP on Android too. Full method and logs: [M4-SPIKE.md](M4-SPIKE.md).
 
 ## 8. Testing & CI
 
@@ -219,7 +233,7 @@ now playable, including its `skip` thumbnail box.
 | Risk | Mitigation |
 |---|---|
 | AVPlayer rejects `video/mpeg` MP4 | **Resolved in M3.0:** a real H.264 MP4 plays fine, in AVFoundation and in the simulator |
-| RTSP on Apple needs VLCKit or own decoder | M4 spike; own client is already prototyped in Python |
+| RTSP on Apple needs VLCKit or own decoder | **Resolved in M4:** own shared RTSP client + AVSampleBufferDisplayLayer, no VLCKit |
 | Other CarDV firmware differs (paths, folders, IP) | Make base URL and folder list configurable; COMPATIBILITY.md; probe scripts for users |
 | Untested settings can hang the camera | Safety levels, experimental toggle, health check, clear recovery message |
 | Brand names in store listings | Repo/app name stays generic ("CarDV Dashcam"); Geely only as "works with" |

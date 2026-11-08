@@ -72,6 +72,27 @@ python3 tools/fake-camera/make_sample_media.py   # requires ffmpeg
 
 If the files are missing, the server falls back to its old protocol-only stub (no decodable video).
 
+## Live RTSP stream
+
+The fake camera implements the HTTP API only. Live view needs a real RTSP server, so
+`start-live-stream.sh` runs [MediaMTX](https://github.com/bluenviron/mediamtx) on port 8554 and
+publishes an ffmpeg test pattern into it:
+
+```sh
+tools/fake-camera/start-live-stream.sh
+# publishing 1280x720 H.264 + AAC 32 kHz on rtsp://127.0.0.1:8554/live
+```
+
+It needs `ffmpeg` and `mediamtx` on `PATH` (`brew install ffmpeg mediamtx`). The stream matches the
+camera's `liveRTSP/av2`: H.264 Main 1280x720 at 30 fps, ~2 Mbit/s, and AAC 32 kHz stereo. RTP is
+served over TCP only, like the camera. Use the debug **Live RTSP URL** under Developer options, or:
+
+```sh
+CARDV_LIVE_URL=rtsp://127.0.0.1:8554/live CARDV_BASE_URL=http://127.0.0.1:8080 CARDV_START_SECTION=live <debug app binary>
+```
+
+`RTSP_PORT` and `RTSP_PATH` override the port and path. Ctrl-C stops ffmpeg and MediaMTX.
+
 ## Tests
 
 `./gradlew :shared:testDebugUnitTest` starts this server on a free port for the integration tests
@@ -81,6 +102,7 @@ are skipped when `python3` is not available. The Flicker test uses a 400 ms writ
 
 ## Limitations
 
-No RTSP/live stream, no delete/format behaviour beyond returning the documented result codes, and
-no authentication (the real camera has none either). The video fixture is a short test pattern, not
+No RTSP/live stream of its own (use `start-live-stream.sh` above), no delete/format behaviour
+beyond returning the documented result codes, and no authentication (the real camera has none
+either). The video fixture is a short test pattern, not
 a real recording. It is a protocol and safety test double, not a production media server.
