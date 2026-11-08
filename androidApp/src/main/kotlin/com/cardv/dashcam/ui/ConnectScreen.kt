@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -86,15 +87,22 @@ fun ConnectScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .statusBarsPadding()
+                .navigationBarsPadding()
                 .padding(horizontal = 24.dp, vertical = 18.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                 Box(
                     modifier = Modifier
                         .size(6.dp)
@@ -129,15 +137,16 @@ fun ConnectScreen(
             HeroLens()
             Spacer(Modifier.height(10.dp))
 
-            Text(
-                text = buildAnnotatedString {
-                    append("Car")
-                    withStyle(SpanStyle(color = colors.primary)) { append("DV") }
-                },
-                style = MaterialTheme.typography.displaySmall,
-                color = colors.onBackground,
-            )
-            Spacer(Modifier.height(26.dp))
+                Text(
+                    text = buildAnnotatedString {
+                        append("Car")
+                        withStyle(SpanStyle(color = colors.primary)) { append("DV") }
+                    },
+                    style = MaterialTheme.typography.displaySmall,
+                    color = colors.onBackground,
+                )
+            }
+            Spacer(Modifier.height(20.dp))
 
             ConnectionCard(state = state)
             Spacer(Modifier.height(16.dp))
