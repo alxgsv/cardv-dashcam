@@ -8,6 +8,6 @@
 //   1. MARKETING_VERSION          semantic version shown in the apps.
 //   2. CURRENT_PROJECT_VERSION    monotonic Apple bundle build number.
 //   3. ANDROID_VERSION_CODE       monotonic integer; 1.0.0 uses 10000.
-MARKETING_VERSION = 1.0.0
-CURRENT_PROJECT_VERSION = 1
-ANDROID_VERSION_CODE = 10000
+MARKETING_VERSION = 1.1.0
+CURRENT_PROJECT_VERSION = 2
+ANDROID_VERSION_CODE = 10100

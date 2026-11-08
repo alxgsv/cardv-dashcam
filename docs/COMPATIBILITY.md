@@ -38,7 +38,7 @@ is the thing to verify; the model name alone is not proof.
 
 Standalone dashcams on the same firmware family (for example MStar MSC8339 models that take an
 `SD_CarDV.bin` update) may work too, but often use a different IP or `/SD/...` layout and are not
-supported by the 1.0.0 app without configuration.
+supported by the 1.1.0 app without configuration.
 
 ## Tested on
 
@@ -66,7 +66,7 @@ Your camera is likely compatible if:
   firmware string such as `0 OK Camera.Menu.FWversion=MS;ms8339DEW;…;GEELY_Z3152_V1.2;…`;
 - `dir` lists `DCIM`, `SOS`, `LOCK` and `Photo`.
 
-If any of those differ, the app will probably not find the camera in 1.0.0. Run the
+If any of those differ, the app will probably not find the camera in 1.1.0. Run the
 [probe tools](../tools/probe/README.md) and open a
 [camera report](https://github.com/alxgsv/cardv-dashcam/issues/new?template=camera-report.yml) with the
 sanitized output.
