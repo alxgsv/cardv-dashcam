@@ -15,14 +15,14 @@ jobs:
     name: Shared core + Android
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Check version file
         run: tools/release/check-version.sh
@@ -33,7 +33,7 @@ jobs:
           :androidApp:assembleDebug :androidApp:lintDebug --stacktrace
 
       - name: Upload debug APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: cardv-dashcam-debug
           path: androidApp/build/outputs/apk/debug/*.apk
@@ -45,14 +45,14 @@ jobs:
     # link-fails on Foundation/CoreFoundation/darwin symbols, so use the Xcode 26 image.
     runs-on: macos-26
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "21"
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
 
       - name: Build iOS simulator app
         run: >
