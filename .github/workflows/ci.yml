@@ -41,7 +41,9 @@ jobs:
 
   apple:
     name: iOS + macOS apps
-    runs-on: macos-15
+    # Kotlin 2.2.21's platform libraries reference macOS 26 SDK symbols. macos-15 (Xcode 16)
+    # link-fails on Foundation/CoreFoundation/darwin symbols, so use the Xcode 26 image.
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 
