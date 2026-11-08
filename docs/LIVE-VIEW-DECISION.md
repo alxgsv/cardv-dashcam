@@ -1,4 +1,4 @@
-# M4 spike — live view on Apple
+# Live view decision — own RTSP client over VLCKit
 
 Decision: **own RTSP/RTP-over-TCP client in `shared`**, not VLCKit.
 
@@ -40,7 +40,7 @@ Measured with a small macOS harness (`VLCMediaPlayer`, `:rtsp-tcp`, `:network-ca
 | decoded frame | snapshot 169,923 bytes |
 | stop → `stopped` | **52 ms** |
 
-Not measured on iOS: the framework's iOS and simulator slices exist, but the spike ran on macOS.
+Not measured on iOS: the framework's iOS and simulator slices exist, but the evaluation ran on macOS.
 VLCKit is LGPL; shipping it means a dynamic framework, its license notices and an App Store review
 of the bundled libVLC modules, plus a large binary. VLCKit 4 is still a pre-release.
 
@@ -81,12 +81,12 @@ video/audio depacketisation, keep-alives, TEARDOWN and a refused DESCRIBE.
 - **Comparable latency**: 216 ms to first frame in the simulator and 24–27 ms to stop are as good as
   VLCKit's 115 ms / 52 ms on macOS, before accounting for the camera's shorter GOP.
 - **Protocol stays shared**: SDP, RTP, H.264/AAC framing and the session state machine live in
-  `commonMain`; only decoding is platform code behind `LiveDecoding`. This is the same boundary the
-  plan asks for, and the client can replace Media3 RTSP on Android later.
+  `commonMain`; only decoding is platform code behind `LiveDecoding`. This is the boundary
+  [DESIGN.md](DESIGN.md) describes, and the client can replace Media3 RTSP on Android later.
 - **Testable**: protocol pieces are common unit tests; a JVM integration test runs a fake RTSP server
   in-process. VLCKit can only be tested through its player.
 - VLCKit is the lower-risk choice for exotic streams (B-frames, trick modes), but the camera's stream
-  is a fixed H.264 Main live feed with in-band SPS/PPS and no trick play, which the spike covered.
+  is a fixed H.264 Main live feed with in-band SPS/PPS and no trick play, which the evaluation covered.
 
 ## Reproduce
 

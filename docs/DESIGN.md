@@ -91,7 +91,7 @@ cardv-dashcam/
 │   ├── DESIGN.md              this file
 │   ├── COMPATIBILITY.md       cameras/firmware strings reported to work
 │   ├── RELEASE.md             version bump, signing, release workflow
-│   ├── M4-SPIKE.md            live-view spike (VLCKit vs own client) and its numbers
+│   ├── LIVE-VIEW-DECISION.md  live-view decision (VLCKit vs own client) and its numbers
 │   └── releases/              hand-written release notes per tag
 ├── shared/                    Kotlin Multiplatform module
 │   └── src/{commonMain,commonTest,androidMain,appleMain}/kotlin/…
@@ -197,7 +197,7 @@ Kotlin core.
   `tools/probe/ait_probe4.py`). H.264 access units go to `AVSampleBufferDisplayLayer` (VideoToolbox) and AAC
   to `AVSampleBufferAudioRenderer`; a render synchronizer keeps the tracks together. Connecting/live/stopped/
   error states, a start/stop control and stream statistics. No VLCKit dependency. Decision and numbers:
-  [M4-SPIKE.md](M4-SPIKE.md).
+  [LIVE-VIEW-DECISION.md](LIVE-VIEW-DECISION.md).
 - **Downloads:** resumable `URLSession` `Range` transfers into `Documents/CarDV`, progress on the tile, and
   "Save to Photos" (iOS) or "Save As…" (macOS). Background `URLSession` is still a follow-up.
 - **Camera and settings:** status, mic, snapshot, lock, record toggle and clock sync; the shared
@@ -256,7 +256,7 @@ time is GOP-bound: the test encoder sends an IDR every 1–2 s; the camera sends
 streams 30 fps, ~2 Mbit/s video, AAC 32 kHz stereo at ~64 kbit/s, 0 lost RTP packets, and stops in 24–27 ms.
 VLCKit would add an 880 MB source archive / 2.8 GB XCFramework and an LGPL dynamic dependency; the own
 client is ~600 lines in `shared`, has unit and integration tests, and can later replace Media3 RTSP on
-Android too. Full method and logs: [M4-SPIKE.md](M4-SPIKE.md).
+Android too. Full method and logs: [LIVE-VIEW-DECISION.md](LIVE-VIEW-DECISION.md).
 
 Decisions taken: display name "CarDV Dashcam", Android minSdk 26, iOS 16+, macOS 13+, signed Android APK
 on GitHub Releases, iOS installed from Xcode over the cable, macOS built from source.

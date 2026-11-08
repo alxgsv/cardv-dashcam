@@ -194,7 +194,7 @@ cleartext to `192.168.42.1`.
 - [docs/DESIGN.md](docs/DESIGN.md) — architecture, safety rules and platform notes
 - [docs/RELEASE.md](docs/RELEASE.md) — version bump, signing and the GitHub Release workflow
 - [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) — supported cars/firmware and the tested-on table
-- [docs/M4-SPIKE.md](docs/M4-SPIKE.md) — the VLCKit vs own-RTSP-client live-view spike and its numbers
+- [docs/LIVE-VIEW-DECISION.md](docs/LIVE-VIEW-DECISION.md) — the VLCKit vs own-RTSP-client live-view decision and its numbers
 - [.github/ISSUE_TEMPLATE/camera-report.yml](.github/ISSUE_TEMPLATE/camera-report.yml) — report a camera
 - [tools/probe/](tools/probe/README.md) — Python scripts to probe a camera
 - [tools/fake-camera/](tools/fake-camera/README.md) — fake camera for development and tests

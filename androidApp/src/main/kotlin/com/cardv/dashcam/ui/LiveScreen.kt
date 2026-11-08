@@ -63,9 +63,9 @@ import com.cardv.dashcam.network.LiveHandle
 import java.io.IOException
 
 /**
- * M4 live view.
+ * Live view.
  *
- * Uses the separate RTSP stream `liveRTSP/av2` (H.264 + AAC) — never the M2 HTTP playback URL.
+ * Uses the separate RTSP stream `liveRTSP/av2` (H.264 + AAC) — never the HTTP playback URL.
  * The camera session already binds the process to the camera Wi-Fi, so the RTSP connection takes
  * the same route; RTP is forced over TCP because the camera only accepts interleaved RTSP.
  */

@@ -1,7 +1,7 @@
 import Shared
 import SwiftUI
 
-/// M4 live view: the same screen in the iOS Live tab and the macOS Live sidebar item.
+/// Live view: the same screen in the iOS Live tab and the macOS Live sidebar item.
 ///
 /// The camera stream is separate from HTTP playback: RTSP `liveRTSP/av2` (H.264 720p + AAC),
 /// RTP over TCP. Live view does not stop recording.
