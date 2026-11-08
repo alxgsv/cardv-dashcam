@@ -4,6 +4,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -37,7 +39,6 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.SdCard
-import androidx.compose.material.icons.rounded.Storage
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.rounded.Videocam
 import androidx.compose.material.icons.rounded.Warning
@@ -174,6 +175,7 @@ fun LibraryScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LibraryHeader(
     state: MainUiState,
@@ -188,7 +190,7 @@ private fun LibraryHeader(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(start = 20.dp, end = 14.dp, top = 10.dp, bottom = 8.dp),
+            .padding(start = 20.dp, end = 20.dp, top = 10.dp, bottom = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
@@ -234,9 +236,10 @@ private fun LibraryHeader(
             }
         }
         Spacer(Modifier.height(12.dp))
-        Row(
-            modifier = Modifier.horizontalScroll(rememberScrollState()),
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             StatusChip(Icons.Rounded.Wifi, "Connected", accent = true)
             if (state.isRecording) {
@@ -245,12 +248,16 @@ private fun LibraryHeader(
             if (state.clockMessage?.startsWith("Camera clock synced") == true) {
                 StatusChip(Icons.Rounded.CheckCircle, "Clock set")
             }
-            state.sdStatus?.let { sd ->
-                StatusChip(Icons.Rounded.SdCard, "SD $sd")
+            val storage = buildString {
+                state.sdStatus?.let { append("SD $it") }
+                val free = state.freeMb
+                if (free != null) {
+                    if (isNotEmpty()) append(" · ")
+                    append("${formatSize(free * 1024L * 1024L)} free")
+                }
             }
-            val free = state.freeMb
-            if (free != null) {
-                StatusChip(Icons.Rounded.Storage, "${formatSize(free * 1024L * 1024L)} free")
+            if (storage.isNotEmpty()) {
+                StatusChip(Icons.Rounded.SdCard, storage)
             }
         }
     }
@@ -310,7 +317,7 @@ private fun FolderPills(state: MainUiState, onSelectFolder: (Folder) -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(horizontal = 12.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
     ) {
         Folder.entries.forEach { folder ->
